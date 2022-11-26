@@ -1,23 +1,41 @@
 #include "AudioPluginUtil.h"
 #include <cmath>
+#include <algorithm>
 
 namespace TestVerb
 {
+    struct ReverbParams
+    {
+        float dryGain;
+        float wetGain;
+        float rt60;
+        float lowPass;
+        float direcX;
+        float direcY;
+        float sDirectX;
+        float sDirectY;
+        float sX;
+        float sY;
+
+        // prevs for interps
+        float curr_dryGain = 1.f;
+        float curr_wetGain = 1.f;
+        float curr_rt60 = 0.f;
+        float curr_lowPass;
+        float curr_direcX = 0;
+        float curr_direcY = 0;
+        float curr_sDirectX = 0;
+        float curr_sDirectY = 0;
+        float curr_sX = 0;
+        float curr_sY = 0;
+    } dspParams;
+
+    float listenerX;
+    float listenerY;
 
     enum Param
     {
-        P_OBSGAIN, //this causes bug ????
-        P_RT60,
-        P_WETGAIN,
-        P_LOWPASS,
-        P_DIRECX, //these only useful for spatialization
-        P_DIRECY, //these only useful for spatialization
-        P_SDIRECX,
-        P_SDIRECY,
-        P_LISTENX, // these useful for dry gain.
-        P_LISTENY,
-        P_SOURCEX,
-        P_SOURCEY,
+        P_SMOOTHINGFACTOR,
         P_NUM
     };
 
@@ -28,29 +46,10 @@ namespace TestVerb
 
     int InternalRegisterEffectDefinition(UnityAudioEffectDefinition& definition)
     {
-        //TODO: expose as upload data.
         int numparams = P_NUM;
         definition.paramdefs = new UnityAudioParameterDefinition[numparams];
-        AudioPluginUtil::RegisterParameter(definition, "ObsGain", "", 0.0f, 10.0f, 1.047f, 1.0f, 1.0f, P_OBSGAIN, "Obstruction gain");
-        AudioPluginUtil::RegisterParameter(definition, "RT60", "s", 0.0f, 1.0f, 0.42f, 1.0f, 1.0f, P_RT60, "Delay time in seconds");
-        AudioPluginUtil::RegisterParameter(definition, "WetGain", "", -20.0f, 10.0f, 0.2f, 1.0f, 1.0f, P_WETGAIN, "Wet gain");
-        AudioPluginUtil::RegisterParameter(definition, "Low pass", "Hz", 0.0f, 5.0f, 2.0f, 1.0f, 1.0f, P_LOWPASS, "Low pass");
-        AudioPluginUtil::RegisterParameter(definition, "Direct. X", "", -1.0f, 1.0f, 0.f,
-            1.0f, 1.0f, P_DIRECX, "Directivity x");
-        AudioPluginUtil::RegisterParameter(definition, "Direct. Y", "", -1.0f, 1.0f, 1.f,
-            1.0f, 1.0f, P_DIRECY, "Directivity y");
-        AudioPluginUtil::RegisterParameter(definition, "SDirect. X", "", -1.0f, 1.0f, 0.0,
-            1.0f, 1.0f, P_SDIRECX, "Source Directivity X");
-        AudioPluginUtil::RegisterParameter(definition, "SDirect. Y", "", -1.0f, 1.0f, -1,
-            1.0f, 1.0f, P_SDIRECY, "Source Directivity Y");
-        AudioPluginUtil::RegisterParameter(definition, "Listen X", "", -5.0f, 5.0f, 0.0f,
-            1.0f, 1.0f, P_LISTENX, "Listener X");
-        AudioPluginUtil::RegisterParameter(definition, "Listen Y", "", -5.0f, 5.0f, 0.0f,
-            1.0f, 1.0f, P_LISTENY, "Listener Y");
-        AudioPluginUtil::RegisterParameter(definition, "Source X", "", -5.0f, 5.0f, -2.0f,
-            1.0f, 1.0f, P_SOURCEX, "Source X");
-        AudioPluginUtil::RegisterParameter(definition, "Source Y", "", -5.0f, 5.0f, 0.0f,
-            1.0f, 1.0f, P_SOURCEY, "Source Y");
+        AudioPluginUtil::RegisterParameter(definition, "Smoothing", "", 1.f, 2.0f, 2.0f,
+            1.0f, 1.0f, P_SMOOTHINGFACTOR, "Amount to smooth audio over time");
         return numparams;
     }
 
@@ -159,90 +158,147 @@ namespace TestVerb
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels)
     {
         EffectData* data = state->GetEffectData<EffectData>();
+
         // don't do anything if input is invalid
-        // for now lo pass ignore
-        // data->params[P_LOWPASS] < PV_DSP_MIN_AUDIBLE_FREQ || data->params[P_LOWPASS] > PV_DSP_MAX_AUDIBLE_FREQ ||
-        // data->params[P_OBSGAIN] <= 0.f || 
-        if (data->params[P_DIRECX] == 0.f && data->params[P_DIRECY] == 0.f) {
+        if (dspParams.lowPass < PV_DSP_MIN_AUDIBLE_FREQ || dspParams.lowPass > PV_DSP_MAX_AUDIBLE_FREQ ||
+            dspParams.dryGain <= 0.f || (dspParams.direcX == 0.f && dspParams.direcY == 0.f)) {
             memset(outbuffer, 0, length * outchannels * sizeof(float)); // play zero sound, as a debugging ref.
             //memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float)); // dry sound
             return UNITY_AUDIODSP_ERR_UNSUPPORTED;
         }
 
-        // length is the audio block size per channel, * channels? or is it alreaady for 1 channel? check the other plugin
-        // it seems to be audio block size per channel for 1 channel
+        // length seems to be audio block size per channel for 1 channel
 
-        // if use spatialization? - consider using a spatialization plugin.
+
+        // TODO: if use spatialization? - have a checkbox param? or consider using a spatialization plugin.
+
 
         // determine lerp factor ?
-        // float lerpFactor = 1.f / ((float)m_numFrames * (float)m_config.dspSmoothingFactor);
-        float lerpFactor = 1.f / ((float)(length) * (float)2); // should be exposed as parameter
+        float lerpFactor = 1.f / ((float)(length) * (float)data->params[P_SMOOTHINGFACTOR]);
 
-        // do everything in-place in inbuffer???
-        float* inPtrMono = inbuffer; // basically coagulate inbuffer at the front as mono-data.
-        const float* inputPtr = inbuffer;
+        // TODO: Low pass filter? or leave it up to user effects?
+
+
+        // do everything in-place in buffers???
+        // basically coagulate channels into mono-data at the first "length" slots of inbuffer.
+        float* inPtrMono = inbuffer; 
+        const float* inputPtrIter = inbuffer;
         for (int i = 0; i < length; ++i)
-        {
-            // todo, make this agnostic beyond stereo - see below in wet gain incorporation
-            float left = *inputPtr++;
-            float right = *inputPtr++;
-            *inPtrMono++ = (left + right) * 0.5f;
+        { // right now agnostic beyond stereo - w/ spatialization, might not be necesary?
+            float val = 0;
+            for (int j = 0; j < outchannels; ++j) {
+                val += *inputPtrIter++;
+            }
+            *inPtrMono++ = (val) / outchannels;
         }
         inPtrMono = inbuffer;
 
-        // incorporate wet gains, writing per-channel into
-        float revGainA = FindGainA(data->params[P_RT60], data->params[P_WETGAIN]);
-        float revGainB = FindGainB(data->params[P_RT60], data->params[P_WETGAIN]);
-        float revGainC = FindGainC(data->params[P_RT60], data->params[P_WETGAIN]);
+        // incorporate wet gains, writing per-channel wet sum into outbuffer
+        float targetRevGainA = FindGainA(dspParams.rt60, dspParams.wetGain);
+        float targetRevGainB = FindGainB(dspParams.rt60, dspParams.wetGain);
+        float targetRevGainC = FindGainC(dspParams.rt60, dspParams.wetGain);
+
+        float currRevGainA = FindGainA(dspParams.curr_rt60, dspParams.curr_wetGain);
+        float currRevGainB = FindGainB(dspParams.curr_rt60, dspParams.curr_wetGain);
+        float currRevGainC = FindGainC(dspParams.curr_rt60, dspParams.curr_wetGain);
         float currGainSum = 0;
         float* outPtr = outbuffer;
         for (int i = 0; i < length; ++i) {
-            // TODO: lerp somewhere here....
-            // check below. more robust.
-            float val = *inPtrMono++ * (revGainA + revGainB + revGainC) * 0.9; // this one goes to outbuffer
+            float currVal = *inPtrMono * (currRevGainA + currRevGainB + currRevGainC) * 0.9;
+            float targetVal = *(inPtrMono++) * (targetRevGainA + targetRevGainB + targetRevGainC) * 0.9; // this one goes to outbuffer
 
             *outPtr = 0;
             for (int j = 0; j < outchannels; ++j) {
-                *(outPtr++) = val;
+                *(outPtr++) = std::lerp(currVal, targetVal, lerpFactor);
             }
-            //currGainSum = std::lerp()
         }
 
         // incorporate dry gains
-        float currDryGain = data->params[P_OBSGAIN];
-        float targetDryGain = currDryGain; // figure this out later
-            // todo: determine directivity gains of the source for cardioid etc.
+        // TODO: determine directivity gains of the source for cardioid etc.
         float sDirectivityGainCurrent = 1.f; // omnidirectional
         float sDirectivityGainTarget = 1.f;
 
-        float distX = data->params[P_LISTENX] - data->params[P_SOURCEX];
-        float distY = data->params[P_LISTENY] - data->params[P_SOURCEY];
+        float distX = listenerX - dspParams.sX;
+        float distY = listenerY - dspParams.sY;
         float euclideanDistance = std::sqrt(distX * distX + distY * distY);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float targetDistanceAttenuation = 1.f / euclideanDistance;
+        /// ///
+        distX = listenerX - dspParams.curr_sX;
+        distY = listenerY - dspParams.curr_sY;
+        euclideanDistance = std::sqrt(distX * distX + distY * distY);
+        euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float currentDistanceAttenuation = targetDistanceAttenuation;
+
+        float currDryGain = dspParams.curr_dryGain;
+        float targetDryGain = dspParams.dryGain;
+        //float targetDryGain = std::max(dspParams.dryGain, PV_DSP_MIN_DRY_GAIN);
 
         inPtrMono = inbuffer;
         outPtr = outbuffer;
         for (int i = 0; i < length; ++i)
         {
             float val = *inPtrMono++ * currDryGain * sDirectivityGainCurrent * currentDistanceAttenuation;
+
+            // TODO: if spatializatoin, this should reflect that
             // out += in, for every in
             for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) += val;
             }
 
-            // currDryGain = std::lerp(currDryGain, targetDryGain, lerpFactor);
-            // sDirectivityGainCurrent = std::lerp(sDirectivityGainCurrent, sDirectivityGainTarget, lerpFactor);
-            // currentDistanceAttenuation = std::lerp(currentDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
+            currDryGain = std::lerp(currDryGain, targetDryGain, lerpFactor);
+            sDirectivityGainCurrent = std::lerp(sDirectivityGainCurrent, sDirectivityGainTarget, lerpFactor);
+            currentDistanceAttenuation = std::lerp(currentDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
         }
+
+        // TODO: this can be simpler.        
+        for (int i = 0; i < length; ++i) {
+            dspParams.curr_direcX = std::lerp(dspParams.curr_direcX, dspParams.direcX, lerpFactor);
+            dspParams.curr_direcY = std::lerp(dspParams.curr_direcY, dspParams.direcY, lerpFactor);
+            dspParams.curr_wetGain = std::lerp(dspParams.curr_wetGain, dspParams.wetGain, lerpFactor);
+            dspParams.curr_rt60 = std::lerp(dspParams.curr_direcX, dspParams.direcX, lerpFactor);
+            //dspParams.forwardx, y = std::lerp(dspParams., dspParams., lerpFactor);
+            dspParams.curr_sDirectX = std::lerp(dspParams.curr_sDirectX, dspParams.sDirectX, lerpFactor);
+            dspParams.curr_sDirectY = std::lerp(dspParams.curr_sDirectY, dspParams.sDirectY, lerpFactor);
+            dspParams.curr_sX = std::lerp(dspParams.curr_sX, dspParams.sX, lerpFactor);
+            dspParams.curr_sY = std::lerp(dspParams.curr_sY, dspParams.sY, lerpFactor);
+        }
+
         return UNITY_AUDIODSP_OK;
     }
 
-    extern "C" UNITY_AUDIODSP_EXPORT_API bool uploadSignalAnalysis(float ....) {
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool uploadSignalAnalysis(
+        float dryGain,
+        float wetGain,
+        float rt60,
+        float lowPass,
+        float direcX,
+        float direcY,
+        float sDirectX,
+        float sDirectY,
+        float sX,
+        float sY) {
+        // TODO: check validity of values here. if needed.
 
+        dspParams.dryGain = dryGain;
+        dspParams.wetGain = wetGain;
+        dspParams.rt60 = rt60;
+        dspParams.lowPass = lowPass;
+        dspParams.direcX = direcX;
+        dspParams.direcY = direcY;
+        dspParams.sDirectX = sDirectX;
+        dspParams.sDirectY = sDirectY;
+        dspParams.sX = sX;
+        dspParams.sY = sY;
+
+        return true;
     }
 
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool updateListenerPos(float x, float y) {
+        listenerX = x;
+        listenerY = y;
+        return true;
+    }
 
     // leave these alone
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK SetFloatParameterCallback(UnityAudioEffectState* state, int index, float value)
