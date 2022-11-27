@@ -38,6 +38,7 @@ namespace TestVerb
     enum Param
     {
         P_SMOOTHINGFACTOR,
+        P_WETGAINRATIO,
         P_NUM
     };
 
@@ -52,6 +53,8 @@ namespace TestVerb
         definition.paramdefs = new UnityAudioParameterDefinition[numparams];
         AudioPluginUtil::RegisterParameter(definition, "Smoothing", "", 1.f, 2.0f, 2.0f,
             1.0f, 1.0f, P_SMOOTHINGFACTOR, "Amount to smooth audio over time");
+        AudioPluginUtil::RegisterParameter(definition, "WetGain Ratio", "", 0.0f, 1.0f, 0.1f,
+            1.0f, 1.0f, P_WETGAINRATIO, "Ratio for how much the reverberant sound affects the audio.");
         return numparams;
     }
 
@@ -204,9 +207,9 @@ namespace TestVerb
         float* outPtr = outbuffer;
 
         for (int i = 0; i < length; ++i) {
-            float valA = *inPtrMono * currRevGainA * 0.9; // expose this ratio as parameter
-            float valB = *inPtrMono * currRevGainB * 0.9; // expose this ratio as parameter
-            float valC = *inPtrMono++ * currRevGainC * 0.9; // expose this ratio as parameter
+            float valA = *inPtrMono * currRevGainA * data->params[P_WETGAINRATIO]; // expose this ratio as parameter
+            float valB = *inPtrMono * currRevGainB * data->params[P_WETGAINRATIO]; // expose this ratio as parameter
+            float valC = *inPtrMono++ * currRevGainC * data->params[P_WETGAINRATIO]; // expose this ratio as parameter
             for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) = valA + valB + valC;
             }
