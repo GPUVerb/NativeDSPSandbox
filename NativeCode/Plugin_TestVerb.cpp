@@ -14,8 +14,6 @@ namespace TestVerb
         float direcY;
         float sDirectX;
         float sDirectY;
-        float sX;
-        float sY;
 
         // prevs for interps
         float curr_dryGain = 1.f;
@@ -32,6 +30,10 @@ namespace TestVerb
 
     float listenerX;
     float listenerY;
+
+    // TODO: setup map or vector container for sources?
+    float sourceX;
+    float sourceY;
 
     enum Param
     {
@@ -172,12 +174,9 @@ namespace TestVerb
 
         // TODO: if use spatialization? - have a checkbox param? or consider using a spatialization plugin.
 
-
-        // determine lerp factor ?
         float lerpFactor = 1.f / ((float)(length) * (float)data->params[P_SMOOTHINGFACTOR]);
 
         // TODO: Low pass filter? or leave it up to user effects?
-
 
         // do everything in-place in buffers???
         // basically coagulate channels into mono-data at the first "length" slots of inbuffer.
@@ -203,14 +202,17 @@ namespace TestVerb
         float currRevGainC = FindGainC(dspParams.curr_rt60, dspParams.curr_wetGain);
         float currGainSum = 0;
         float* outPtr = outbuffer;
-        for (int i = 0; i < length; ++i) {
-            float currVal = *inPtrMono * (currRevGainA + currRevGainB + currRevGainC) * 0.9;
-            float targetVal = *(inPtrMono++) * (targetRevGainA + targetRevGainB + targetRevGainC) * 0.9; // this one goes to outbuffer
 
-            *outPtr = 0;
+        for (int i = 0; i < length; ++i) {
+            float valA = *inPtrMono * currRevGainA * 0.9; // expose this ratio as parameter
+            float valB = *inPtrMono * currRevGainB * 0.9; // expose this ratio as parameter
+            float valC = *inPtrMono++ * currRevGainC * 0.9; // expose this ratio as parameter
             for (int j = 0; j < outchannels; ++j) {
-                *(outPtr++) = std::lerp(currVal, targetVal, lerpFactor);
+                *(outPtr++) = valA + valB + valC;
             }
+            currRevGainA = std::lerp(currRevGainA, targetRevGainA, lerpFactor);
+            currRevGainB = std::lerp(currRevGainB, targetRevGainB, lerpFactor);
+            currRevGainC = std::lerp(currRevGainC, targetRevGainC, lerpFactor);
         }
 
         // incorporate dry gains
@@ -218,8 +220,8 @@ namespace TestVerb
         float sDirectivityGainCurrent = 1.f; // omnidirectional
         float sDirectivityGainTarget = 1.f;
 
-        float distX = listenerX - dspParams.sX;
-        float distY = listenerY - dspParams.sY;
+        float distX = listenerX - sourceX;
+        float distY = listenerY - sourceY;
         float euclideanDistance = std::sqrt(distX * distX + distY * distY);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float targetDistanceAttenuation = 1.f / euclideanDistance;
@@ -228,7 +230,7 @@ namespace TestVerb
         distY = listenerY - dspParams.curr_sY;
         euclideanDistance = std::sqrt(distX * distX + distY * distY);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
-        float currentDistanceAttenuation = targetDistanceAttenuation;
+        float currentDistanceAttenuation = 1.f / euclideanDistance;
 
         float currDryGain = dspParams.curr_dryGain;
         float targetDryGain = dspParams.dryGain;
@@ -240,7 +242,7 @@ namespace TestVerb
         {
             float val = *inPtrMono++ * currDryGain * sDirectivityGainCurrent * currentDistanceAttenuation;
 
-            // TODO: if spatializatoin, this should reflect that
+            // TODO: if spatialization, this should reflect that
             // out += in, for every in
             for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) += val;
@@ -251,17 +253,18 @@ namespace TestVerb
             currentDistanceAttenuation = std::lerp(currentDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
         }
 
-        // TODO: this can be simpler.        
+        // TODO: this can be simpler.
+        dspParams.curr_dryGain = currDryGain;
         for (int i = 0; i < length; ++i) {
             dspParams.curr_direcX = std::lerp(dspParams.curr_direcX, dspParams.direcX, lerpFactor);
             dspParams.curr_direcY = std::lerp(dspParams.curr_direcY, dspParams.direcY, lerpFactor);
             dspParams.curr_wetGain = std::lerp(dspParams.curr_wetGain, dspParams.wetGain, lerpFactor);
-            dspParams.curr_rt60 = std::lerp(dspParams.curr_direcX, dspParams.direcX, lerpFactor);
+            dspParams.curr_rt60 = std::lerp(dspParams.curr_rt60, dspParams.rt60, lerpFactor);
             //dspParams.forwardx, y = std::lerp(dspParams., dspParams., lerpFactor);
             dspParams.curr_sDirectX = std::lerp(dspParams.curr_sDirectX, dspParams.sDirectX, lerpFactor);
             dspParams.curr_sDirectY = std::lerp(dspParams.curr_sDirectY, dspParams.sDirectY, lerpFactor);
-            dspParams.curr_sX = std::lerp(dspParams.curr_sX, dspParams.sX, lerpFactor);
-            dspParams.curr_sY = std::lerp(dspParams.curr_sY, dspParams.sY, lerpFactor);
+            dspParams.curr_sX = std::lerp(dspParams.curr_sX, sourceX, lerpFactor);
+            dspParams.curr_sY = std::lerp(dspParams.curr_sY, sourceY, lerpFactor);
         }
 
         return UNITY_AUDIODSP_OK;
@@ -275,11 +278,8 @@ namespace TestVerb
         float direcX,
         float direcY,
         float sDirectX,
-        float sDirectY,
-        float sX,
-        float sY) {
+        float sDirectY) {
         // TODO: check validity of values here. if needed.
-
         dspParams.dryGain = dryGain;
         dspParams.wetGain = wetGain;
         dspParams.rt60 = rt60;
@@ -288,15 +288,18 @@ namespace TestVerb
         dspParams.direcY = direcY;
         dspParams.sDirectX = sDirectX;
         dspParams.sDirectY = sDirectY;
-        dspParams.sX = sX;
-        dspParams.sY = sY;
-
         return true;
     }
 
     extern "C" UNITY_AUDIODSP_EXPORT_API bool updateListenerPos(float x, float y) {
         listenerX = x;
         listenerY = y;
+        return true;
+    }
+
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool updateSourcePos(float x, float y) {
+        sourceX = x;
+        sourceY = y;
         return true;
     }
 

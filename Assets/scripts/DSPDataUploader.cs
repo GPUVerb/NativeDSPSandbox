@@ -13,12 +13,13 @@ public class DSPDataUploader : MonoBehaviour
         float direcX,
         float direcY,
         float sDirectX,
-        float sDirectY,
-        float sX,
-        float sY);
+        float sDirectY);
 
     [DllImport("AudioPluginDemo")]
     private static extern bool updateListenerPos(float x, float y);
+
+    [DllImport("AudioPluginDemo")]
+    private static extern bool updateSourcePos(float x, float y);
 
     // Start is called before the first frame update
     void Start()
@@ -28,9 +29,9 @@ public class DSPDataUploader : MonoBehaviour
     void Update()
     {
         updateListenerPos(0.0f, 0.0f);
+        updateSourcePos(-2.0f, 0.0f);
         uploadSignalAnalysis(1.07f, 0.2f, 0.42f, 20.0f,
             0.0f, 1.0f,
-            0.0f, -1.0f,
-            -2.0f, 0.0f);
+            0.0f, -1.0f);
     }
 }
