@@ -15,7 +15,9 @@ namespace Planeverb
 	public class PlaneverbEmitter : MonoBehaviour
 	{
 		[DllImport("AudioPluginDemo")]
-		private static extern bool updateSourcePos(float x, float y);
+		private static extern bool updateSourcePos(float x, float y, float forwardX, float forwardY);
+		[DllImport("AudioPluginDemo")]
+		private static extern bool setSourcePattern(int pattern);
 
 		// public interface
 		public AudioClip Clip;
@@ -62,7 +64,9 @@ namespace Planeverb
 					PlaneverbDSPContext.UpateEmitter(id, transform.position, transform.forward);
 					output = PlaneverbContext.GetOutput(id);
 
-					updateSourcePos(transform.position.x, transform.position.z);
+					updateSourcePos(transform.position.x, transform.position.z,
+						transform.forward.x, transform.forward.z);
+					setSourcePattern((int)DirectivityPattern);
 				}
 				// case this emission has ended since the last frame: end emission and reset the id
 				else

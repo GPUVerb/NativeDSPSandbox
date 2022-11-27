@@ -36,7 +36,7 @@ AudioMixerGroupController:
   m_Pitch: b324003332a642a478a7d999aadbd6bc
   m_Send: 00000000000000000000000000000000
   m_Effects:
-  - {fileID: 3547977212536547194}
+  - {fileID: 8940563271695647689}
   - {fileID: 24400004}
   m_UserColorIndex: 0
   m_Mute: 0
@@ -67,21 +67,21 @@ AudioMixerSnapshotController:
   m_SnapshotID: 85cdfd61a9abcec4ea2f034847911db6
   m_FloatValues: {}
   m_TransitionOverrides: {}
---- !u!244 &3547977212536547194
+--- !u!244 &8940563271695647689
 AudioMixerEffectController:
   m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: 
-  m_EffectID: 4591ab3da0ccdca48a6c13be678a1785
-  m_EffectName: Demo GPUVerbDSP
-  m_MixLevel: bb60523e9a9a71f49ba8d5cb259b23f2
+  m_EffectID: 38c171c2a2560f74282aabc2eb784fbf
+  m_EffectName: GPUVerbDSP
+  m_MixLevel: 0efce27f6b2b7fa46b232b001f4a3398
   m_Parameters:
   - m_ParameterName: Smoothing
-    m_GUID: 3fd50c6af3fa2144995faa7df3ec30f6
+    m_GUID: 617e1940e97923747b5889ca2aaff15d
   - m_ParameterName: WetGain Ratio
-    m_GUID: 29901cff8ed3f4242a37ccf1bfa04bcc
+    m_GUID: a8ac095e0b4ac984bb6a22170bfd14fd
   m_SendTarget: {fileID: 0}
   m_EnableWetMix: 0
   m_Bypass: 0

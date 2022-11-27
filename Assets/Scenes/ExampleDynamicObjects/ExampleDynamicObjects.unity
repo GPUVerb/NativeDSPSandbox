@@ -343,7 +343,7 @@ MonoBehaviour:
   PlayOnAwake: 1
   Loop: 1
   Volume: 0
-  DirectivityPattern: 0
+  DirectivityPattern: 1
 --- !u!95 &209418845
 Animator:
   serializedVersion: 4

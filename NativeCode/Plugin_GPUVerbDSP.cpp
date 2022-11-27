@@ -26,14 +26,27 @@ namespace GPUVerbDSP
         float curr_sDirectY = 0;
         float curr_sX = 0;
         float curr_sY = 0;
+        float curr_sForwardX = 0;
+        float curr_sForwardY = 0;
     } dspParams;
 
     float listenerX;
     float listenerY;
 
+    enum class DirectivityPattern
+    {
+        Omni,
+        Cardioid,
+        // add more here
+        SourceDirectivityPatternCount
+    };
+
     // TODO: setup map or vector container for sources?
     float sourceX;
     float sourceY;
+    float sourceForwardX;
+    float sourceForwardY;
+    DirectivityPattern sourcePattern;
 
     enum Param
     {
@@ -133,14 +146,11 @@ namespace GPUVerbDSP
         }
     }
 
-    inline float FindGainC(float rt60, float wetGain)
-    {
-        if (rt60 > PV_DSP_T_ER_3)
-        {
+    inline float FindGainC(float rt60, float wetGain) {
+        if (rt60 > PV_DSP_T_ER_3) {
             return 1.f;
         }
-        else if (rt60 < PV_DSP_T_ER_2)
-        {
+        else if (rt60 < PV_DSP_T_ER_2) {
             return 0.f;
         }
 
@@ -152,13 +162,12 @@ namespace GPUVerbDSP
         return gain - a;
     }
 
-    enum PlaneverbDSPSourceDirectivityPattern
-    {
-        pvd_Omni,			// omni pattern
-        pvd_Cardioid,		// cardioid 
-        // add more here
-        pvd_SourceDirectivityPatternCount
-    };
+    inline float CardioidPattern(const float direcX, const float direcY, 
+        const float forwardX, const float forwardY) {
+        float dotValue = direcX * forwardX + direcY * forwardY; // dot product
+        float cardioid = (1.f + dotValue) / 2.f;
+        return (cardioid > PV_DSP_MIN_DRY_GAIN) ? cardioid : PV_DSP_MIN_DRY_GAIN;
+    }
 
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels)
     {
@@ -219,9 +228,16 @@ namespace GPUVerbDSP
         }
 
         // incorporate dry gains
-        // TODO: determine directivity gains of the source for cardioid etc.
-        float sDirectivityGainCurrent = 1.f; // omnidirectional
+        
+        // if (sourcePattern == DirectivityPattern::Omni)
+        float sDirectivityGainCurrent = 1.f;
         float sDirectivityGainTarget = 1.f;
+        if (sourcePattern == DirectivityPattern::Cardioid) {
+            sDirectivityGainCurrent = CardioidPattern(dspParams.curr_sDirectX, dspParams.curr_sDirectY,
+                dspParams.curr_sForwardX, dspParams.curr_sForwardY);
+            sDirectivityGainTarget = CardioidPattern(dspParams.sDirectX, dspParams.sDirectY,
+                sourceForwardX, sourceForwardY);
+        }
 
         float distX = listenerX - sourceX;
         float distY = listenerY - sourceY;
@@ -236,8 +252,7 @@ namespace GPUVerbDSP
         float currentDistanceAttenuation = 1.f / euclideanDistance;
 
         float currDryGain = dspParams.curr_dryGain;
-        float targetDryGain = dspParams.dryGain;
-        //float targetDryGain = std::max(dspParams.dryGain, PV_DSP_MIN_DRY_GAIN);
+        float targetDryGain = (std::max)(dspParams.dryGain, PV_DSP_MIN_DRY_GAIN);
 
         inPtrMono = inbuffer;
         outPtr = outbuffer;
@@ -263,7 +278,8 @@ namespace GPUVerbDSP
             dspParams.curr_direcY = std::lerp(dspParams.curr_direcY, dspParams.direcY, lerpFactor);
             dspParams.curr_wetGain = std::lerp(dspParams.curr_wetGain, dspParams.wetGain, lerpFactor);
             dspParams.curr_rt60 = std::lerp(dspParams.curr_rt60, dspParams.rt60, lerpFactor);
-            //dspParams.forwardx, y = std::lerp(dspParams., dspParams., lerpFactor);
+            dspParams.curr_sForwardX = std::lerp(dspParams.curr_sForwardX, sourceForwardX, lerpFactor);
+            dspParams.curr_sForwardY = std::lerp(dspParams.curr_sForwardY, sourceForwardY, lerpFactor);
             dspParams.curr_sDirectX = std::lerp(dspParams.curr_sDirectX, dspParams.sDirectX, lerpFactor);
             dspParams.curr_sDirectY = std::lerp(dspParams.curr_sDirectY, dspParams.sDirectY, lerpFactor);
             dspParams.curr_sX = std::lerp(dspParams.curr_sX, sourceX, lerpFactor);
@@ -282,7 +298,6 @@ namespace GPUVerbDSP
         float direcY,
         float sDirectX,
         float sDirectY) {
-        // TODO: check validity of values here. if needed.
         dspParams.dryGain = dryGain;
         dspParams.wetGain = wetGain;
         dspParams.rt60 = rt60;
@@ -304,7 +319,13 @@ namespace GPUVerbDSP
         float forwardX, float forwardY) {
         sourceX = x;
         sourceY = y;
-        //TODO: forward for cardioid etc.
+        sourceForwardX = forwardX;
+        sourceForwardY = forwardY;
+        return true;
+    }
+
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool setSourcePattern(int pattern) {
+        sourcePattern = static_cast<DirectivityPattern>(pattern);
         return true;
     }
 
