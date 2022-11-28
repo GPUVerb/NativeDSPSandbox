@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Planeverb
 {
 	[AddComponentMenu("Planeverb/DSP/PlaneverbAudioSourceInternal")]
-	class PlaneverbAudioSource : MonoBehaviour
+	public class PlaneverbAudioSource : MonoBehaviour
 	{
 		// handle to the clip that's being played
 		private AudioClip clip = null;

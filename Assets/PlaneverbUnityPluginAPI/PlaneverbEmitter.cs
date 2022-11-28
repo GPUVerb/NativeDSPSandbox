@@ -136,5 +136,11 @@ namespace Planeverb
 		{
 			return volumeGain;
 		}
+
+		// some scuffed patching to work with the overhauled
+		public PlaneverbAudioSource GetAudioSource()
+		{
+			return source;
+		}
 	}
 } // namespace Planeverb
