@@ -52,14 +52,16 @@ namespace Planeverb
 				float sDirectivityX;
 				float sDirectivityY;*/
 		PlaneverbDSPInput curr_dspParams;
-/*		float curr_dryGain = 1.0f;
-		float curr_wetGain = 1.0f;
-		float curr_rt60 = 0.0f;
-		float curr_lowPass;
-		float curr_direcX = 0;
-		float curr_direcY = 0;
-		float curr_sDirectivityX = 0;
-		float curr_sDirectivityY = 0;*/
+		/*		float curr_dryGain = 1.0f;
+				float curr_wetGain = 1.0f;
+				float curr_rt60 = 0.0f;
+				float curr_lowPass;
+				float curr_direcX = 0;
+				float curr_direcY = 0;
+				float curr_sDirectivityX = 0;
+				float curr_sDirectivityY = 0;*/
+
+		private float[] outbuffer = new float[4096]; // expose as max frame length ?
 
 		void Start()
 		{
@@ -172,20 +174,15 @@ namespace Planeverb
 				return;
 			}
 
-			// TODO: ? reconsider?
-			float[] outbuffer = new float[dataBufferLength];
-
-
 			float lerpFactor = 1f / ((float)(length) * 2f); // expose as "SMOOTHING FACTOR"
-															// exit if input is invalid - shouldn't happen.
+															// exit if input is invalid - shouldn't happe
 
 			// TODO: if use spatialization? - have a checkbox param? or consider using a spatialization plugin.
 
 			// coagulate channels into mono-data at the first "length" slots of data.
 			for (int i = 0; i < length; ++i) { // agnostic for stereo+ - w/ spatialization, might not be necesary?
 				float val = 0;
-				for (int j = 0; j < channels; ++j)
-				{
+				for (int j = 0; j < channels; ++j) {
 					val += data[i * channels + j];
 				}
 				data[i] = (val) / channels;
@@ -201,13 +198,11 @@ namespace Planeverb
 			float currRevGainB = FindGainB(curr_dspParams.rt60, curr_dspParams.wetGain);
 			float currRevGainC = FindGainC(curr_dspParams.rt60, curr_dspParams.wetGain);
 			//float currGainSum = 0;
-			for (int i = 0; i < length; ++i)
-			{
+			for (int i = 0; i < length; ++i) {
 				float valA = data[i] * currRevGainA * 0.1f; //TODO: expose this as wetgainratio
 				float valB = data[i] * currRevGainB * 0.1f;
 				float valC = data[i] * currRevGainC * 0.1f;
-				for (int j = 0; j < channels; ++j)
-				{
+				for (int j = 0; j < channels; ++j) {
 					outbuffer[i * channels + j] = valA + valB + valC;
 				}
 				currRevGainA = Mathf.Lerp(currRevGainA, targetRevGainA, lerpFactor);
@@ -218,8 +213,7 @@ namespace Planeverb
 			// if (sourcePattern == DirectivityPattern::Omni)
 			float sDirectivityGainCurrent = 1.0f;
 			float sDirectivityGainTarget = 1.0f;
-			if (sourcePattern == PlaneverbSourceDirectivityPattern.Cardioid)
-			{
+			if (sourcePattern == PlaneverbSourceDirectivityPattern.Cardioid) {
 				sDirectivityGainCurrent = CardioidPattern(curr_dspParams.sourceDirectionX, curr_dspParams.sourceDirectionY,
 					curr_sourceForwardX, curr_sourceForwardY);
 				sDirectivityGainTarget = CardioidPattern(dspParams.sourceDirectionX, dspParams.sourceDirectionY,
@@ -241,13 +235,11 @@ namespace Planeverb
 			float currDryGain = curr_dspParams.obstructionGain;
 			float targetDryGain = Mathf.Max(dspParams.obstructionGain, PV_DSP_MIN_DRY_GAIN);
 
-			for (int i = 0; i < length; ++i)
-			{
+			for (int i = 0; i < length; ++i) {
 				float val = data[i] * currDryGain * sDirectivityGainCurrent * currentDistanceAttenuation;
 
 				// TODO: if spatialization, this should reflect that
-				for (int j = 0; j < channels; ++j)
-				{
+				for (int j = 0; j < channels; ++j) {
 					outbuffer[i * channels + j] += val;
 				}
 				currDryGain = Mathf.Lerp(currDryGain, targetDryGain, lerpFactor);
@@ -257,8 +249,7 @@ namespace Planeverb
 
 			// TODO: this can be simpler.
 			curr_dspParams.obstructionGain = currDryGain;
-			for (int i = 0; i < length; ++i)
-			{
+			for (int i = 0; i < length; ++i) {
 				curr_dspParams.directionX		= Mathf.Lerp(curr_dspParams.directionX,			dspParams.directionX, lerpFactor);
 				curr_dspParams.directionY		= Mathf.Lerp(curr_dspParams.directionY,			dspParams.directionY, lerpFactor);
 				curr_dspParams.wetGain			= Mathf.Lerp(curr_dspParams.wetGain,		dspParams.wetGain, lerpFactor);
