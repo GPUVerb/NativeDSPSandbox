@@ -65,7 +65,8 @@ AudioMixerSnapshotController:
   m_Name: Snapshot
   m_AudioMixer: {fileID: 24100000}
   m_SnapshotID: 85cdfd61a9abcec4ea2f034847911db6
-  m_FloatValues: {}
+  m_FloatValues:
+    4a03a99ad2d1af04fa953eec7edddd37: 21
   m_TransitionOverrides: {}
 --- !u!244 &8940563271695647689
 AudioMixerEffectController:
@@ -82,6 +83,8 @@ AudioMixerEffectController:
     m_GUID: 617e1940e97923747b5889ca2aaff15d
   - m_ParameterName: WetGain Ratio
     m_GUID: a8ac095e0b4ac984bb6a22170bfd14fd
+  - m_ParameterName: Source ID
+    m_GUID: 4a03a99ad2d1af04fa953eec7edddd37
   m_SendTarget: {fileID: 0}
   m_EnableWetMix: 0
   m_Bypass: 0

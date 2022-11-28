@@ -1,35 +1,10 @@
 #include "AudioPluginUtil.h"
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
 
 namespace GPUVerbDSP
 {
-    struct ReverbParams
-    {
-        float dryGain;
-        float wetGain;
-        float rt60;
-        float lowPass;
-        float direcX;
-        float direcY;
-        float sDirectX;
-        float sDirectY;
-
-        // prevs for interps
-        float curr_dryGain = 1.f;
-        float curr_wetGain = 1.f;
-        float curr_rt60 = 0.f;
-        float curr_lowPass;
-        float curr_direcX = 0;
-        float curr_direcY = 0;
-        float curr_sDirectX = 0;
-        float curr_sDirectY = 0;
-        float curr_sX = 0;
-        float curr_sY = 0;
-        float curr_sForwardX = 0;
-        float curr_sForwardY = 0;
-    } dspParams;
-
     float listenerX;
     float listenerY;
 
@@ -41,15 +16,46 @@ namespace GPUVerbDSP
         SourceDirectivityPatternCount
     };
 
-    // TODO: setup map or vector container for sources?
-    float sourceX;
-    float sourceY;
-    float sourceForwardX;
-    float sourceForwardY;
-    DirectivityPattern sourcePattern;
+    typedef struct SourceData
+    {
+        // inherent to source
+        DirectivityPattern sourcePattern;
+
+        float sourceX;
+        float sourceY;
+        float sourceForwardX;
+        float sourceForwardY;
+
+        float curr_sourceX = 0;
+        float curr_sourceY = 0;
+        float curr_sourceForwardX = 0;
+        float curr_sourceForwardY = 0;
+
+        // Analyzer output
+        float dryGain;
+        float wetGain;
+        float rt60;
+        float lowPass;
+        float direcX;
+        float direcY;
+        float sDirectivityX;
+        float sDirectivityY;
+
+        float curr_dryGain = 1.f;
+        float curr_wetGain = 1.f;
+        float curr_rt60 = 0.f;
+        float curr_lowPass;
+        float curr_direcX = 0;
+        float curr_direcY = 0;
+        float curr_sDirectivityX = 0;
+        float curr_sDirectivityY = 0;
+    };
+
+    std::unordered_map<int, SourceData> sourceMap;
 
     enum Param
     {
+        P_MIXERNUM,
         P_SMOOTHINGFACTOR,
         P_WETGAINRATIO,
         P_NUM
@@ -64,6 +70,8 @@ namespace GPUVerbDSP
     {
         int numparams = P_NUM;
         definition.paramdefs = new UnityAudioParameterDefinition[numparams];
+        AudioPluginUtil::RegisterParameter(definition, "Source ID", "", 1.0f, 100.0f, 1.0f,
+            1.0f, 1.0f, P_MIXERNUM, "The ID of an uploader script that outputs to this mixer should match Source ID");
         AudioPluginUtil::RegisterParameter(definition, "Smoothing", "", 1.f, 2.0f, 2.0f,
             1.0f, 1.0f, P_SMOOTHINGFACTOR, "Amount to smooth audio over time");
         AudioPluginUtil::RegisterParameter(definition, "WetGain Ratio", "", 0.0f, 1.0f, 0.1f,
@@ -173,22 +181,11 @@ namespace GPUVerbDSP
     {
         EffectData* data = state->GetEffectData<EffectData>();
 
-        // don't do anything if input is invalid
-        if (dspParams.lowPass < PV_DSP_MIN_AUDIBLE_FREQ || dspParams.lowPass > PV_DSP_MAX_AUDIBLE_FREQ ||
-            dspParams.dryGain <= 0.f || (dspParams.direcX == 0.f && dspParams.direcY == 0.f)) {
-            memset(outbuffer, 0, length * outchannels * sizeof(float)); // play zero sound, as a debugging ref.
-            //memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float)); // dry sound
-            return UNITY_AUDIODSP_ERR_UNSUPPORTED;
-        }
-
         // length seems to be audio block size per channel for 1 channel
-
 
         // TODO: if use spatialization? - have a checkbox param? or consider using a spatialization plugin.
 
         float lerpFactor = 1.f / ((float)(length) * (float)data->params[P_SMOOTHINGFACTOR]);
-
-        // TODO: Low pass filter? or leave it up to user effects?
 
         // do everything in-place in buffers???
         // basically coagulate channels into mono-data at the first "length" slots of inbuffer.
@@ -202,57 +199,69 @@ namespace GPUVerbDSP
             }
             *inPtrMono++ = (val) / outchannels;
         }
-        inPtrMono = inbuffer;
+
+        // set output to 0 (necessary?)
+        memset(outbuffer, 0, length * outchannels * sizeof(float));
+
+        auto it = sourceMap.find((int)data->params[P_MIXERNUM]);
+        if (it == sourceMap.end()) { return UNITY_AUDIODSP_ERR_UNSUPPORTED; }
+        auto& source = it->second;
+        // exit if input is invalid - shouldn't happen.
+        if (source.lowPass < PV_DSP_MIN_AUDIBLE_FREQ || source.lowPass > PV_DSP_MAX_AUDIBLE_FREQ ||
+            source.dryGain <= 0.f || (source.direcX == 0.f && source.direcY == 0.f)) {
+            // play zero sound, as a debugging ref.
+            return UNITY_AUDIODSP_ERR_UNSUPPORTED;
+        }
+
+        // TODO: Low pass filter? or leave it up to user effects?
 
         // incorporate wet gains, writing per-channel wet sum into outbuffer
-        float targetRevGainA = FindGainA(dspParams.rt60, dspParams.wetGain);
-        float targetRevGainB = FindGainB(dspParams.rt60, dspParams.wetGain);
-        float targetRevGainC = FindGainC(dspParams.rt60, dspParams.wetGain);
-
-        float currRevGainA = FindGainA(dspParams.curr_rt60, dspParams.curr_wetGain);
-        float currRevGainB = FindGainB(dspParams.curr_rt60, dspParams.curr_wetGain);
-        float currRevGainC = FindGainC(dspParams.curr_rt60, dspParams.curr_wetGain);
+        float targetRevGainA = FindGainA(source.rt60, source.wetGain);
+        float targetRevGainB = FindGainB(source.rt60, source.wetGain);
+        float targetRevGainC = FindGainC(source.rt60, source.wetGain);
+        float currRevGainA = FindGainA(source.curr_rt60, source.curr_wetGain);
+        float currRevGainB = FindGainB(source.curr_rt60, source.curr_wetGain);
+        float currRevGainC = FindGainC(source.curr_rt60, source.curr_wetGain);
         float currGainSum = 0;
         float* outPtr = outbuffer;
-
+        inPtrMono = inbuffer;
         for (int i = 0; i < length; ++i) {
             float valA = *inPtrMono * currRevGainA * data->params[P_WETGAINRATIO];
             float valB = *inPtrMono * currRevGainB * data->params[P_WETGAINRATIO];
             float valC = *inPtrMono++ * currRevGainC * data->params[P_WETGAINRATIO];
             for (int j = 0; j < outchannels; ++j) {
-                *(outPtr++) = valA + valB + valC;
+                *(outPtr++) += valA + valB + valC;
             }
             currRevGainA = std::lerp(currRevGainA, targetRevGainA, lerpFactor);
             currRevGainB = std::lerp(currRevGainB, targetRevGainB, lerpFactor);
             currRevGainC = std::lerp(currRevGainC, targetRevGainC, lerpFactor);
         }
 
-        // incorporate dry gains
-        
-        // if (sourcePattern == DirectivityPattern::Omni)
+        // incorporate dry gains:
+            // if (sourcePattern == DirectivityPattern::Omni)
         float sDirectivityGainCurrent = 1.f;
         float sDirectivityGainTarget = 1.f;
-        if (sourcePattern == DirectivityPattern::Cardioid) {
-            sDirectivityGainCurrent = CardioidPattern(dspParams.curr_sDirectX, dspParams.curr_sDirectY,
-                dspParams.curr_sForwardX, dspParams.curr_sForwardY);
-            sDirectivityGainTarget = CardioidPattern(dspParams.sDirectX, dspParams.sDirectY,
-                sourceForwardX, sourceForwardY);
+        if (source.sourcePattern == DirectivityPattern::Cardioid) {
+            sDirectivityGainCurrent = CardioidPattern(source.curr_sDirectivityX, source.curr_sDirectivityY,
+                source.curr_sourceForwardX, source.curr_sourceForwardY);
+            sDirectivityGainTarget = CardioidPattern(source.sDirectivityX, source.sDirectivityY,
+                source.sourceForwardX, source.sourceForwardY);
         }
 
-        float distX = listenerX - sourceX;
-        float distY = listenerY - sourceY;
+        float distX = listenerX - source.sourceX;
+        float distY = listenerY - source.sourceY;
         float euclideanDistance = std::sqrt(distX * distX + distY * distY);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float targetDistanceAttenuation = 1.f / euclideanDistance;
         /// ///
-        distX = listenerX - dspParams.curr_sX;
-        distY = listenerY - dspParams.curr_sY;
+        distX = listenerX - source.curr_sourceX;
+        distY = listenerY - source.curr_sourceY;
         euclideanDistance = std::sqrt(distX * distX + distY * distY);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float currentDistanceAttenuation = 1.f / euclideanDistance;
 
-        float currDryGain = dspParams.curr_dryGain;
-        float targetDryGain = (std::max)(dspParams.dryGain, PV_DSP_MIN_DRY_GAIN);
+        float currDryGain = source.curr_dryGain;
+        float targetDryGain = (std::max)(source.dryGain, PV_DSP_MIN_DRY_GAIN);
 
         inPtrMono = inbuffer;
         outPtr = outbuffer;
@@ -261,35 +270,35 @@ namespace GPUVerbDSP
             float val = *inPtrMono++ * currDryGain * sDirectivityGainCurrent * currentDistanceAttenuation;
 
             // TODO: if spatialization, this should reflect that
-            // out += in, for every in
             for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) += val;
             }
-
             currDryGain = std::lerp(currDryGain, targetDryGain, lerpFactor);
             sDirectivityGainCurrent = std::lerp(sDirectivityGainCurrent, sDirectivityGainTarget, lerpFactor);
             currentDistanceAttenuation = std::lerp(currentDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
         }
 
         // TODO: this can be simpler.
-        dspParams.curr_dryGain = currDryGain;
+        source.curr_dryGain = currDryGain;
         for (int i = 0; i < length; ++i) {
-            dspParams.curr_direcX = std::lerp(dspParams.curr_direcX, dspParams.direcX, lerpFactor);
-            dspParams.curr_direcY = std::lerp(dspParams.curr_direcY, dspParams.direcY, lerpFactor);
-            dspParams.curr_wetGain = std::lerp(dspParams.curr_wetGain, dspParams.wetGain, lerpFactor);
-            dspParams.curr_rt60 = std::lerp(dspParams.curr_rt60, dspParams.rt60, lerpFactor);
-            dspParams.curr_sForwardX = std::lerp(dspParams.curr_sForwardX, sourceForwardX, lerpFactor);
-            dspParams.curr_sForwardY = std::lerp(dspParams.curr_sForwardY, sourceForwardY, lerpFactor);
-            dspParams.curr_sDirectX = std::lerp(dspParams.curr_sDirectX, dspParams.sDirectX, lerpFactor);
-            dspParams.curr_sDirectY = std::lerp(dspParams.curr_sDirectY, dspParams.sDirectY, lerpFactor);
-            dspParams.curr_sX = std::lerp(dspParams.curr_sX, sourceX, lerpFactor);
-            dspParams.curr_sY = std::lerp(dspParams.curr_sY, sourceY, lerpFactor);
+            source.curr_direcX = std::lerp(source.curr_direcX, source.direcX, lerpFactor);
+            source.curr_direcY = std::lerp(source.curr_direcY, source.direcY, lerpFactor);
+            source.curr_wetGain = std::lerp(source.curr_wetGain, source.wetGain, lerpFactor);
+            source.curr_rt60 = std::lerp(source.curr_rt60, source.rt60, lerpFactor);
+            source.curr_sourceForwardX = std::lerp(source.curr_sourceForwardX, source.sourceForwardX, lerpFactor);
+            source.curr_sourceForwardY = std::lerp(source.curr_sourceForwardY, source.sourceForwardY, lerpFactor);
+            source.curr_sDirectivityX = std::lerp(source.curr_sDirectivityX, source.sDirectivityX, lerpFactor);
+            source.curr_sDirectivityY = std::lerp(source.curr_sDirectivityY, source.sDirectivityY, lerpFactor);
+            source.curr_sourceX = std::lerp(source.curr_sourceX, source.sourceX, lerpFactor);
+            source.curr_sourceY = std::lerp(source.curr_sourceY, source.sourceY, lerpFactor);
         }
-
+        
         return UNITY_AUDIODSP_OK;
     }
 
+    //TODO: set up an "initialize" function to be called in C# to insert an ID into map to cut down on find, if, else code blocks
     extern "C" UNITY_AUDIODSP_EXPORT_API bool uploadSignalAnalysis(
+        int id,
         float dryGain,
         float wetGain,
         float rt60,
@@ -298,14 +307,30 @@ namespace GPUVerbDSP
         float direcY,
         float sDirectX,
         float sDirectY) {
-        dspParams.dryGain = dryGain;
-        dspParams.wetGain = wetGain;
-        dspParams.rt60 = rt60;
-        dspParams.lowPass = lowPass;
-        dspParams.direcX = direcX;
-        dspParams.direcY = direcY;
-        dspParams.sDirectX = sDirectX;
-        dspParams.sDirectY = sDirectY;
+        auto it = sourceMap.find(id);
+        if (it == sourceMap.end()) {
+            SourceData data{
+               .dryGain = dryGain,
+               .wetGain = wetGain,
+               .rt60 = rt60,
+               .lowPass = lowPass,
+               .direcX = direcX,
+               .direcY = direcY,
+               .sDirectivityX = sDirectX,
+               .sDirectivityY = sDirectY
+            };
+            sourceMap.insert({ id, data });
+        }
+        else {
+            it->second.dryGain = dryGain;
+            it->second.wetGain = wetGain;
+            it->second.rt60 = rt60;
+            it->second.lowPass = lowPass;
+            it->second.direcX = direcX;
+            it->second.direcY = direcY;
+            it->second.sDirectivityX = sDirectX;
+            it->second.sDirectivityY = sDirectY;
+        }
         return true;
     }
 
@@ -315,17 +340,42 @@ namespace GPUVerbDSP
         return true;
     }
 
-    extern "C" UNITY_AUDIODSP_EXPORT_API bool updateSourcePos(float x, float y,
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool updateSourcePos(
+        int id,
+        float x, float y,
         float forwardX, float forwardY) {
-        sourceX = x;
-        sourceY = y;
-        sourceForwardX = forwardX;
-        sourceForwardY = forwardY;
+        auto it = sourceMap.find(id);
+        if (it == sourceMap.end()) {
+            SourceData data{
+               .sourceX = x,
+               .sourceY = y,
+               .sourceForwardX = forwardX,
+               .sourceForwardY = forwardY,
+            };
+            sourceMap.insert({ id, data });
+        }
+        else {
+            it->second.sourceX = x;
+            it->second.sourceY = y;
+            it->second.sourceForwardX = forwardX;
+            it->second.sourceForwardY = forwardY;
+        }
         return true;
     }
 
-    extern "C" UNITY_AUDIODSP_EXPORT_API bool setSourcePattern(int pattern) {
-        sourcePattern = static_cast<DirectivityPattern>(pattern);
+    extern "C" UNITY_AUDIODSP_EXPORT_API bool setSourcePattern(
+        int id,
+        int pattern) {
+        auto it = sourceMap.find(id);
+        if (it == sourceMap.end()) {
+            SourceData data{
+               .sourcePattern = static_cast<DirectivityPattern>(pattern),
+            };
+            sourceMap.insert({ id, data });
+        }
+        else {
+            it->second.sourcePattern = static_cast<DirectivityPattern>(pattern);
+        }
         return true;
     }
 

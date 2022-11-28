@@ -168,6 +168,9 @@ namespace Planeverb
 		// getters
 		public int GetEmissionID() { return emitter.GetID(); }
 
+		// getters
+		public int GetEmissionGPVerbID() { return emitter.GPUVerbPluginId; }
+
 		public PlaneverbDSPInput GetInput()
 		{
 			PlaneverbOutput pvoutput = emitter.GetOutput();
