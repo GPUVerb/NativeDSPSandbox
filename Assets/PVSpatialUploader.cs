@@ -17,8 +17,6 @@ namespace Planeverb {
 			SMOOTHING_FACTOR,
 
 			sourcePattern, // corresponds to the enum DirectivityPattern
-			sourceForwardX, //TODO: fetch forward from transform matrix instead of writing?
-			sourceForwardY,
 			dryGain,
 			wetGain,
 			rt60,
@@ -51,14 +49,10 @@ namespace Planeverb {
 
 		void Update()
 		{
-			sourceForwardX = transform.forward.x;
-			sourceForwardY = transform.forward.z;
 
 			PlaneverbDSPInput dspParams = emitter.GetAudioSource().GetInput();
 
 			source.SetSpatializerFloat((int)EffectData.sourcePattern, (float)sourcePattern);
-			source.SetSpatializerFloat((int)EffectData.sourceForwardX, sourceForwardX);
-			source.SetSpatializerFloat((int)EffectData.sourceForwardY, sourceForwardY);
 			source.SetSpatializerFloat((int)EffectData.dryGain, dspParams.obstructionGain);
 			source.SetSpatializerFloat((int)EffectData.wetGain, dspParams.wetGain);
 			source.SetSpatializerFloat((int)EffectData.rt60, dspParams.rt60);

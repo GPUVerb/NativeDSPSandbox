@@ -25,8 +25,6 @@ namespace GPUVerbSpatializer
         SMOOTHING_FACTOR,
 
         sourcePattern,
-        sourceForwardX, //TODO: fetch forward from transform matrix instead of writing?
-        sourceForwardY,
         dryGain,
         wetGain,
         rt60,
@@ -68,12 +66,6 @@ namespace GPUVerbSpatializer
         AudioPluginUtil::RegisterParameter(definition, "S Pattern", "",
             0, (float)DirectivityPattern::SourceDirectivityPatternCount,
             (float)DirectivityPattern::Omni, 1.0f, 1.0f, Param::sourcePattern, "");
-        AudioPluginUtil::RegisterParameter(definition, "SForw X", "",
-            -100.f, 100.f,
-            0.f, 1.0f, 1.0f, Param::sourceForwardX, "");
-        AudioPluginUtil::RegisterParameter(definition, "SForw Y", "",
-            -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::sourceForwardY);
         AudioPluginUtil::RegisterParameter(definition, "Dry Gain", "",
             0, 100.f,
             0, 1.0f, 1.0f, Param::dryGain);
@@ -201,9 +193,8 @@ namespace GPUVerbSpatializer
 
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels)
     {
-        // Check that I/O formats are right and that the host API supports this feature
-        if (inchannels != 2 || outchannels != 2 ||
-            !IsHostCompatible(state) || state->spatializerdata == NULL) {
+        // Check that the host API supports this feature
+        if (!IsHostCompatible(state) || state->spatializerdata == NULL) {
             memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float)); // play raw audio
             return UNITY_AUDIODSP_OK;
         }
@@ -218,13 +209,13 @@ namespace GPUVerbSpatializer
             return UNITY_AUDIODSP_ERR_UNSUPPORTED;
         }
 
-        float lerpFactor = 1.f / ((float)(length) * data->p[Param::SMOOTHING_FACTOR]);
+        float lerpFactor = 1.f / ((float)(length)*data->p[Param::SMOOTHING_FACTOR]);
         // coagulate channels into mono-data at the first "length" slots of inbuffer
         float* inPtrMono = inbuffer;
         const float* inputPtrIter = inbuffer;
         for (int i = 0; i < length; ++i) {
             float val = 0;
-            for (int j = 0; j < outchannels; ++j) { // spatialization enforces 2 channels. technically unnecessary.
+            for (int j = 0; j < outchannels; ++j) {
                 val += *inputPtrIter++;
             }
             *inPtrMono++ = (val) / outchannels;
@@ -246,7 +237,7 @@ namespace GPUVerbSpatializer
             float valA = *inPtrMono * currRevGainA * 0.1f; // TOOD: expose as wetgainratio
             float valB = *inPtrMono * currRevGainB * 0.1f;
             float valC = *inPtrMono++ * currRevGainC * 0.1f;
-            for (int j = 0; j < outchannels; ++j) { // spatialization enforces 2 channels. technically unnecessary.
+            for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) = valA + valB + valC;
             }
             currRevGainA = std::lerp(currRevGainA, targetRevGainA, lerpFactor);
@@ -257,9 +248,9 @@ namespace GPUVerbSpatializer
 
         // incorporate dry gains
         float* L = state->spatializerdata->listenermatrix;
-        float* s = state->spatializerdata->sourcematrix;
-        float sourceX = s[12];
-        float sourceY = s[14];
+        float* S = state->spatializerdata->sourcematrix;
+        float sourceX = S[12];
+        float sourceY = S[14];
 
         float listenerScaleSquared = 1.0f / (L[1] * L[1] + L[5] * L[5] + L[9] * L[9]);
         // transpose/inverse of rotation * translation
@@ -278,6 +269,11 @@ namespace GPUVerbSpatializer
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float currDistanceAttenuation = 1.f / euclideanDistance;
 
+        // x and z components of z-facing vector transform
+        float mag = std::sqrt(S[8] * S[8] + S[9] * S[9] + S[10] * S[10]);
+        float sourceForwardX = S[8] / mag;
+        float sourceForwardY = S[10] / mag;
+
         // if (sourcePattern == DirectivityPattern::Omni)
         float currSDirectivityGain = 1.f;
         float targetSDirectivityGain = 1.f;
@@ -285,22 +281,53 @@ namespace GPUVerbSpatializer
             currSDirectivityGain = CardioidPattern(data->curr_sDirectivityX, data->curr_sDirectivityY,
                 data->curr_sourceForwardX, data->curr_sourceForwardY);
             targetSDirectivityGain = CardioidPattern(data->p[Param::sDirectivityX], data->p[Param::sDirectivityY],
-                data->p[Param::sourceForwardX], data->p[Param::sourceForwardY]);
+                sourceForwardX, sourceForwardY);
         }
 
         float currDryGain = data->curr_dryGain;
         float targetDryGain = (std::max)(data->p[Param::dryGain], PV_DSP_MIN_DRY_GAIN);
+
+        // Spatialization: determine panning current and target values
+        bool spatialize = (inchannels == 2 && outchannels == 2);
+        float targetLeft = 1.f, targetRight = 1.f;
+        float currLeft = 1.f, currRight = 1.f;
+        if (spatialize) {
+            mag = std::sqrt(L[2] * L[2] + L[6] * L[6] + L[10] * L[10]);
+            float forwardX = L[2] / mag;
+            float forwardY = L[10] / mag;
+
+            float angle = std::atan2f(forwardY, forwardX);
+            float phi = std::atan2f(data->p[Param::direcY], data->p[Param::direcX]);
+            float theta = (angle - phi) / 2.f;
+            float ct = std::cos(theta);
+            float st = std::sin(theta);
+            targetLeft = PV_DSP_INV_SQRT_2 * (ct - st);
+            targetRight = PV_DSP_INV_SQRT_2 * (ct + st);
+
+            phi = std::atan2f(data->curr_direcY, data->curr_direcX);
+            theta = (angle - phi) / 2.f;
+            ct = std::cos(theta);
+            st = std::sin(theta);
+            currLeft = PV_DSP_INV_SQRT_2 * (ct - st);
+            currRight = PV_DSP_INV_SQRT_2 * (ct + st);
+        }
 
         inPtrMono = inbuffer;
         outPtr = outbuffer;
         for (int i = 0; i < length; ++i)
         {
             float val = *inPtrMono++ * currDryGain * currSDirectivityGain * currDistanceAttenuation;
-
-            // TODO: if spatialization, this should reflect that
-            for (int j = 0; j < outchannels; ++j) { // spatialization enforces 2 channels. technically unnecessary.
-                *(outPtr++) += val;
+            if (!spatialize) {
+                for (int j = 0; j < outchannels; ++j) { // copy across channels if not spatializing
+                    *(outPtr++) += val;
+                }
+            } else {
+                *(outPtr++) += val * currLeft;
+                *(outPtr++) += val * currRight;
+                currRight = std::lerp(currRight, targetRight, lerpFactor);
+                currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
             }
+
             currDryGain = std::lerp(currDryGain, targetDryGain, lerpFactor);
             currSDirectivityGain = std::lerp(currSDirectivityGain, targetSDirectivityGain, lerpFactor);
             currDistanceAttenuation = std::lerp(currDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
@@ -313,8 +340,8 @@ namespace GPUVerbSpatializer
             data->curr_direcY         = std::lerp(data->curr_direcY,         data->p[Param::direcY], lerpFactor);
             data->curr_wetGain        = std::lerp(data->curr_wetGain,        data->p[Param::wetGain], lerpFactor);
             data->curr_rt60           = std::lerp(data->curr_rt60,           data->p[Param::rt60], lerpFactor);
-            data->curr_sourceForwardX = std::lerp(data->curr_sourceForwardX, data->p[Param::sourceForwardX], lerpFactor);
-            data->curr_sourceForwardY = std::lerp(data->curr_sourceForwardY, data->p[Param::sourceForwardY], lerpFactor);
+            data->curr_sourceForwardX = std::lerp(data->curr_sourceForwardX, sourceForwardX, lerpFactor);
+            data->curr_sourceForwardY = std::lerp(data->curr_sourceForwardY, sourceForwardY, lerpFactor);
             data->curr_sDirectivityX  = std::lerp(data->curr_sDirectivityX,  data->p[Param::sDirectivityX], lerpFactor);
             data->curr_sDirectivityY  = std::lerp(data->curr_sDirectivityY,  data->p[Param::sDirectivityY], lerpFactor);
             data->curr_sourceX        = std::lerp(data->curr_sourceX,        sourceX, lerpFactor);
