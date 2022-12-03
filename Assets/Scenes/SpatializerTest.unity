@@ -240,7 +240,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &439287079
 AudioSource:
   m_ObjectHideFlags: 0
@@ -352,6 +352,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &439287081
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -798,7 +799,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &1235787147
 AudioSource:
   m_ObjectHideFlags: 0
@@ -910,6 +911,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &1235787149
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1290,6 +1292,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &1490150683
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1399,7 +1402,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1490150680}
   m_LocalRotation: {x: -0, y: 0.9989096, z: -0, w: -0.046686146}
-  m_LocalPosition: {x: 5.6477995, y: 0.82, z: 8.708266}
+  m_LocalPosition: {x: 5.38, y: 0.82, z: 5.86}
   m_LocalScale: {x: 0.3474, y: 0.3474, z: 0.3474}
   m_ConstrainProportionsScale: 0
   m_Children:

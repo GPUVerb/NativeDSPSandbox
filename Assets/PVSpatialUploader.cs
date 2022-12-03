@@ -15,8 +15,9 @@ namespace Planeverb {
 	{
 		private enum EffectData {
 			SMOOTHING_FACTOR,
+			WET_GAIN_RATIO,
 
-			sourcePattern, // corresponds to the enum DirectivityPattern
+			sourcePattern,
 			dryGain,
 			wetGain,
 			rt60,
@@ -35,9 +36,7 @@ namespace Planeverb {
 		// public interface
 		public SourceDirectivityPattern sourcePattern;
 		public float SMOOTHING = 2f;
-		// TODO: exposed variables to route to spatializer
-
-		float sourceX, sourceY, sourceForwardX, sourceForwardY;
+		public float WET_GAIN_RATIO = 0.1f;
 
 		void Start()
 		{
@@ -45,6 +44,7 @@ namespace Planeverb {
 			emitter = GetComponent<PlaneverbEmitter>();
 
 			source.SetSpatializerFloat((int)EffectData.SMOOTHING_FACTOR, SMOOTHING);
+			source.SetSpatializerFloat((int)EffectData.WET_GAIN_RATIO, WET_GAIN_RATIO);
 		}
 
 		void Update()
@@ -56,7 +56,7 @@ namespace Planeverb {
 			source.SetSpatializerFloat((int)EffectData.dryGain, dspParams.obstructionGain);
 			source.SetSpatializerFloat((int)EffectData.wetGain, dspParams.wetGain);
 			source.SetSpatializerFloat((int)EffectData.rt60, dspParams.rt60);
-			source.SetSpatializerFloat((int)EffectData.lowPass, 30f);
+			source.SetSpatializerFloat((int)EffectData.lowPass, dspParams.lowpass);
 			source.SetSpatializerFloat((int)EffectData.direcX, dspParams.directionX);
 			source.SetSpatializerFloat((int)EffectData.direcY, dspParams.directionY);
 			source.SetSpatializerFloat((int)EffectData.sDirectivityX, dspParams.sourceDirectionX);

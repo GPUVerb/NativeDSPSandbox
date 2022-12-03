@@ -23,12 +23,13 @@ namespace GPUVerbSpatializer
 
     enum Param {
         SMOOTHING_FACTOR,
+        WET_GAIN_RATIO,
 
         sourcePattern,
         dryGain,
         wetGain,
         rt60,
-        lowPass,
+        lowPass, // TODO: implement here? or leave up to user effects?
         direcX,
         direcY,
         sDirectivityX,
@@ -48,7 +49,7 @@ namespace GPUVerbSpatializer
         float curr_dryGain = 1.f;
         float curr_wetGain = 1.f;
         float curr_rt60 = 0.f;
-        float curr_lowPass;
+        float curr_lowPass; 
         float curr_direcX = 0;
         float curr_direcY = 0;
         float curr_sDirectivityX = 0;
@@ -62,34 +63,37 @@ namespace GPUVerbSpatializer
         // Very hacky way of reading parameters for spatializer effectdata.
         AudioPluginUtil::RegisterParameter(definition, "Smoothing", "",
             0.f, 10.f,
-            2.f, 1.0f, 1.0f, Param::SMOOTHING_FACTOR, "");
+            2.f, 1.0f, 1.0f, Param::SMOOTHING_FACTOR, "Audio smoothing amount");
+        AudioPluginUtil::RegisterParameter(definition, "W/G R", "",
+            0.f, 10.f,
+            0.1f, 1.0f, 1.0f, Param::WET_GAIN_RATIO, "Wet gain ratio");
         AudioPluginUtil::RegisterParameter(definition, "S Pattern", "",
             0, (float)DirectivityPattern::SourceDirectivityPatternCount,
-            (float)DirectivityPattern::Omni, 1.0f, 1.0f, Param::sourcePattern, "");
+            (float)DirectivityPattern::Omni, 1.0f, 1.0f, Param::sourcePattern, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Dry Gain", "",
             0, 100.f,
-            0, 1.0f, 1.0f, Param::dryGain);
+            0, 1.0f, 1.0f, Param::dryGain, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Wet Gain", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::wetGain);
+            0, 1.0f, 1.0f, Param::wetGain, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "RT60", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::rt60);
+            0, 1.0f, 1.0f, Param::rt60, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Low Pass", "",
             0.f, 100.f,
-            0, 1.0f, 1.0f, Param::lowPass);
+            0, 1.0f, 1.0f, Param::lowPass, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Direc X", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::direcX);
+            0, 1.0f, 1.0f, Param::direcX, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Direc Y", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::direcY);
+            0, 1.0f, 1.0f, Param::direcY, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "SDirec X", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::sDirectivityX);
+            0, 1.0f, 1.0f, Param::sDirectivityX, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "SDirec Y", "",
             -100.f, 100.f,
-            0, 1.0f, 1.0f, Param::sDirectivityY);
+            0, 1.0f, 1.0f, Param::sDirectivityY, "Special parameter, only modify in-code");
         definition.flags |= UnityAudioEffectDefinitionFlags_IsSpatializer;
         return numparams;
     }
@@ -221,7 +225,11 @@ namespace GPUVerbSpatializer
             *inPtrMono++ = (val) / outchannels;
         }
 
-        // TODO: Low pass filter? or leave it up to user effects?
+
+
+        // possible to add low pass filter here for marginal sound change
+
+
 
         // incorporate wet gains
         float targetRevGainA = FindGainA(data->p[Param::rt60], data->p[Param::wetGain]);
@@ -234,9 +242,9 @@ namespace GPUVerbSpatializer
         float* outPtr = outbuffer;
         inPtrMono = inbuffer;
         for (int i = 0; i < length; ++i) {
-            float valA = *inPtrMono * currRevGainA * 0.1f; // TOOD: expose as wetgainratio
-            float valB = *inPtrMono * currRevGainB * 0.1f;
-            float valC = *inPtrMono++ * currRevGainC * 0.1f;
+            float valA = *inPtrMono * currRevGainA * data->p[Param::WET_GAIN_RATIO];
+            float valB = *inPtrMono * currRevGainB * data->p[Param::WET_GAIN_RATIO];
+            float valC = *inPtrMono++ * currRevGainC * data->p[Param::WET_GAIN_RATIO];
             for (int j = 0; j < outchannels; ++j) {
                 *(outPtr++) = valA + valB + valC;
             }
@@ -244,7 +252,6 @@ namespace GPUVerbSpatializer
             currRevGainB = std::lerp(currRevGainB, targetRevGainB, lerpFactor);
             currRevGainC = std::lerp(currRevGainC, targetRevGainC, lerpFactor);
         }
-
 
         // incorporate dry gains
         float* L = state->spatializerdata->listenermatrix;
