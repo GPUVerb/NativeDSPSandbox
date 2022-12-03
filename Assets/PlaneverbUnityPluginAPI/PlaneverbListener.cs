@@ -7,9 +7,6 @@ namespace Planeverb
 	[AddComponentMenu("Planeverb/PlaneverbListener")]
 	public class PlaneverbListener : MonoBehaviour
 	{
-		[DllImport("AudioPluginDemo")]
-		private static extern bool updateListenerPos(float x, float y);
-
 		private static PlaneverbListener instance = null;
 		private Vector3 oldPosition;
 		private const float CHANGE_EPSILON = 0.01f;
@@ -23,8 +20,6 @@ namespace Planeverb
 			// init listener information in both contexts
 			PlaneverbContext.SetListenerPosition(transform.position);
 			PlaneverbDSPContext.SetListenerTransform(transform.position, transform.forward);
-
-			updateListenerPos(transform.position.x, transform.position.z);
 		}
 
 		void Update()
@@ -33,8 +28,6 @@ namespace Planeverb
 			PlaneverbContext.SetListenerPosition(transform.position);
 			PlaneverbDSPContext.SetListenerTransform(transform.position, transform.forward);
 			oldPosition = transform.position;
-
-			updateListenerPos(transform.position.x, transform.position.z);
 
 			if (PlaneverbContext.GetInstance().debugDraw)
 			{

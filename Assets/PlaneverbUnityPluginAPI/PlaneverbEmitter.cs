@@ -14,17 +14,10 @@ namespace Planeverb
 	[AddComponentMenu("Planeverb/PlaneverbEmitter")]
 	public class PlaneverbEmitter : MonoBehaviour
 	{
-		[DllImport("AudioPluginDemo")]
-		private static extern bool updateSourcePos(int id, float x, float y, float forwardX, float forwardY);
-		[DllImport("AudioPluginDemo")]
-		private static extern bool setSourcePattern(int id, int pattern);
-
 		// public interface
 		public AudioClip Clip;
 		public bool PlayOnAwake;
 		public bool Loop;
-
-		public int GPUVerbPluginId;
 
 		[Range(-48f, 12f)]
 		public float Volume;
@@ -65,10 +58,6 @@ namespace Planeverb
 					PlaneverbContext.UpdateEmission(id, transform.position);
 					PlaneverbDSPContext.UpateEmitter(id, transform.position, transform.forward);
 					output = PlaneverbContext.GetOutput(id);
-
-					updateSourcePos(GPUVerbPluginId, transform.position.x, transform.position.z,
-						transform.forward.x, transform.forward.z);
-					setSourcePattern(GPUVerbPluginId, (int)DirectivityPattern);
 				}
 				// case this emission has ended since the last frame: end emission and reset the id
 				else

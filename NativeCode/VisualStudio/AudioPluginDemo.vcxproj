@@ -183,7 +183,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\AudioPluginUtil.cpp" />
-    <ClCompile Include="..\Plugin_GPUVerbDSP.cpp" />
     <ClCompile Include="..\Plugin_GPUVerbSpatializer.cpp" />
   </ItemGroup>
   <ItemGroup>

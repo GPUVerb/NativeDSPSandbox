@@ -1,2 +1,1 @@
-DECLARE_EFFECT("GPUVerbDSP", GPUVerbDSP)
 DECLARE_EFFECT("GPUVerbSpatializer", GPUVerbSpatializer)
