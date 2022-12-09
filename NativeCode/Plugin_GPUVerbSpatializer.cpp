@@ -38,8 +38,12 @@ namespace GPUVerbSpatializer {
     };
 
     enum Param {
+        SPATIALIZE,
+        MUTE_DRY,
+        
         SMOOTHING_FACTOR,
         WET_GAIN_RATIO,
+        // TODO: something for toggling dry output (on/off)
 
         sourcePattern,
         dryGain,
@@ -77,6 +81,12 @@ namespace GPUVerbSpatializer {
         int numparams = numParams;
         definition.paramdefs = new UnityAudioParameterDefinition[numparams];
         // Very hacky way of reading parameters for spatializer effectdata.
+        AudioPluginUtil::RegisterParameter(definition, "Spatialize", "",
+            0.f, 1.f,
+            1.f, 1.0f, 1.0f, Param::SPATIALIZE, "Spatialize bool - special parameter");
+        AudioPluginUtil::RegisterParameter(definition, "Mute Dry", "",
+            0.f, 1.f,
+            0.f, 1.0f, 1.0f, Param::MUTE_DRY, "Mute dry bool - special parameter");
         AudioPluginUtil::RegisterParameter(definition, "Smoothing", "",
             0.f, 10.f,
             2.f, 1.0f, 1.0f, Param::SMOOTHING_FACTOR, "Audio smoothing amount");
@@ -300,7 +310,8 @@ namespace GPUVerbSpatializer {
         float targetDryGain = (std::max)(data->p[Param::dryGain], PV_DSP_MIN_DRY_GAIN);
 
         // Spatialization: determine panning current and target values
-        bool spatialize = false; //  (inchannels == 2 && outchannels == 2);
+        bool spatialize = data->p[Param::SPATIALIZE] && (inchannels == 2 && outchannels == 2);
+
         float targetLeft = 1.f, targetRight = 1.f;
         float currLeft = 1.f, currRight = 1.f;
         if (spatialize) {
@@ -328,16 +339,22 @@ namespace GPUVerbSpatializer {
         outPtr = outbuffer;
         for (int i = 0; i < length; ++i)
         {
-            float val = *inPtrMono++ * data->curr_dryGain * currSDirectivityGain * currDistanceAttenuation;
-            if (!spatialize) {
-                for (int j = 0; j < outchannels; ++j) { // copy across channels if not spatializing
-                    *(outPtr++) = val;
+            if (data->p[Param::MUTE_DRY]) {
+                memset(outbuffer, 0, length * outchannels * sizeof(float));
+            }
+            else {
+                float val = *inPtrMono++ * data->curr_dryGain * currSDirectivityGain * currDistanceAttenuation;
+                if (!spatialize) {
+                    for (int j = 0; j < outchannels; ++j) { // copy across channels if not spatializing
+                        *(outPtr++) = val;
+                    }
                 }
-            } else {
-                *(outPtr++) = val * currLeft; //+=
-                *(outPtr++) = val * currRight;
-                currRight = std::lerp(currRight, targetRight, lerpFactor);
-                currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
+                else {
+                    *(outPtr++) = val * currLeft; //+=
+                    *(outPtr++) = val * currRight;
+                    currRight = std::lerp(currRight, targetRight, lerpFactor);
+                    currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
+                }
             }
 
             data->curr_dryGain = std::lerp(data->curr_dryGain, targetDryGain, lerpFactor);

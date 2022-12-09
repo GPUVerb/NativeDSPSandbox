@@ -240,7 +240,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &439287079
 AudioSource:
   m_ObjectHideFlags: 0
@@ -250,7 +250,7 @@ AudioSource:
   m_GameObject: {fileID: 439287078}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 6683191538845727115, guid: c61c2aa911b2c8645bb386b78d2f1781,
+  OutputAudioMixerGroup: {fileID: 24300002, guid: c61c2aa911b2c8645bb386b78d2f1781,
     type: 2}
   m_audioClip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   m_PlayOnAwake: 1
@@ -353,6 +353,8 @@ MonoBehaviour:
   sourcePattern: 0
   SMOOTHING: 2
   WET_GAIN_RATIO: 0.1
+  SPATIALIZE: 1
+  SUPPRESS_DRY_SOUND: 0
 --- !u!114 &439287081
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -798,7 +800,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!82 &1235787147
 AudioSource:
   m_ObjectHideFlags: 0
@@ -808,7 +810,7 @@ AudioSource:
   m_GameObject: {fileID: 1235787146}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 6683191538845727115, guid: c61c2aa911b2c8645bb386b78d2f1781,
+  OutputAudioMixerGroup: {fileID: 24300002, guid: c61c2aa911b2c8645bb386b78d2f1781,
     type: 2}
   m_audioClip: {fileID: 8300000, guid: 2ae71ce79a247e54fb8035b7c20bfca5, type: 3}
   m_PlayOnAwake: 1
@@ -911,6 +913,8 @@ MonoBehaviour:
   sourcePattern: 0
   SMOOTHING: 2
   WET_GAIN_RATIO: 0.1
+  SPATIALIZE: 1
+  SUPPRESS_DRY_SOUND: 0
 --- !u!114 &1235787149
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1188,7 +1192,7 @@ AudioSource:
   m_GameObject: {fileID: 1490150680}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 6683191538845727115, guid: c61c2aa911b2c8645bb386b78d2f1781,
+  OutputAudioMixerGroup: {fileID: 24300002, guid: c61c2aa911b2c8645bb386b78d2f1781,
     type: 2}
   m_audioClip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   m_PlayOnAwake: 1
@@ -1291,6 +1295,8 @@ MonoBehaviour:
   sourcePattern: 1
   SMOOTHING: 2
   WET_GAIN_RATIO: 0.7
+  SPATIALIZE: 1
+  SUPPRESS_DRY_SOUND: 0
 --- !u!114 &1490150683
 MonoBehaviour:
   m_ObjectHideFlags: 0

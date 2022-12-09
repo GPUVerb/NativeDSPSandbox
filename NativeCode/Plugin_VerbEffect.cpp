@@ -1,5 +1,9 @@
 #include "AudioPluginUtil.h"
 
+
+// VerbEffect: currently reverb is implemented as SFX Reverbs on multiple mixers in-unity through Reverb prefab.
+// It is possible to implement them all as an overall, single audio effect in this class. (Currently verbeffect does nothing).
+
 //float reverbmixbuffer[65536] = { 0 };
 float reverbABuffer[4096] = { 0 };
 float reverbBBuffer[4096] = { 0 };
@@ -37,30 +41,28 @@ extern "C" UNITY_AUDIODSP_EXPORT_API bool zeroReverb(int bufidx) { // this corre
     return true;
 }
 
-//below: possible to implement as an overall effect, as opposed to multiple mixers.
-
-class Random
-{
-public:
-    inline void Seed(unsigned long _seed)
-    {
-        seed = _seed;
-    }
-
-    inline unsigned int Get()
-    {
-        seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF;
-        return seed ^ (seed >> 16);
-    }
-
-    inline float GetFloat(float minval, float maxval)
-    {
-        return minval + (maxval - minval) * (Get() & 0xFFFFFF) * (const float)(1.0f / (float)0xFFFFFF);
-    }
-
-protected:
-    unsigned int seed;
-};
+//class Random
+//{
+//public:
+//    inline void Seed(unsigned long _seed)
+//    {
+//        seed = _seed;
+//    }
+//
+//    inline unsigned int Get()
+//    {
+//        seed = (seed * 1664525 + 1013904223) & 0xFFFFFFFF;
+//        return seed ^ (seed >> 16);
+//    }
+//
+//    inline float GetFloat(float minval, float maxval)
+//    {
+//        return minval + (maxval - minval) * (Get() & 0xFFFFFF) * (const float)(1.0f / (float)0xFFFFFF);
+//    }
+//
+//protected:
+//    unsigned int seed;
+//};
 
 namespace VerbEffect {
     const int MAXTAPS = 1024;
@@ -72,39 +74,37 @@ namespace VerbEffect {
         P_NUM
     };
 
-    struct InstanceChannel
-    {
-        struct Tap
-        {
-            int pos;
-            float amp;
-        };
-        struct Delay
-        {
-            enum { MASK = 0xFFFFF };
-            int writepos;
-            inline void Write(float x)
-            {
-                writepos = (writepos + MASK) & MASK;
-                data[writepos] = x;
-            }
+    //struct InstanceChannel
+    //{
+    //    struct Tap
+    //    {
+    //        int pos;
+    //        float amp;
+    //    };
+    //    struct Delay
+    //    {
+    //        enum { MASK = 0xFFFFF };
+    //        int writepos;
+    //        inline void Write(float x)
+    //        {
+    //            writepos = (writepos + MASK) & MASK;
+    //            data[writepos] = x;
+    //        }
 
-            inline float Read(int delay) const
-            {
-                return data[(writepos + delay) & MASK];
-            }
+    //        inline float Read(int delay) const
+    //        {
+    //            return data[(writepos + delay) & MASK];
+    //        }
 
-            float data[MASK + 1];
-        };
-        Tap taps[1024];
-        Delay delay;
-    };
+    //        float data[MASK + 1];
+    //    };
+    //    Tap taps[1024];
+    //    Delay delay;
+    //};
 
     struct EffectData
     {
         float p[P_NUM];
-        Random random;
-        InstanceChannel ch[2];
     };
 
     int InternalRegisterEffectDefinition(UnityAudioEffectDefinition& definition)
