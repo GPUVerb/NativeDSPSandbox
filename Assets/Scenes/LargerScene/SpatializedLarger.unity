@@ -172,6 +172,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DesertBrazzier_Red (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
       value: 6
@@ -829,6 +833,10 @@ PrefabInstance:
     - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_Name
       value: DesertBrazzier_Red
+      objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
@@ -2324,6 +2332,10 @@ PrefabInstance:
     - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_Name
       value: DesertBrazzier_Red (4)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
@@ -4103,6 +4115,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DesertBrazzier_Red (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
       value: 3
@@ -4523,6 +4539,10 @@ PrefabInstance:
     - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_Name
       value: DesertBrazzier_Red (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
@@ -5815,6 +5835,10 @@ PrefabInstance:
     - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_Name
       value: DesertBrazzier_Red (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
@@ -7413,6 +7437,11 @@ PrefabInstance:
         type: 3}
       propertyPath: m_Name
       value: Radio
+      objectReference: {fileID: 0}
+    - target: {fileID: 3680098934831009004, guid: c99a447165e10df4fbd6c545288e239f,
+        type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 6694785825049350505, guid: c99a447165e10df4fbd6c545288e239f,
         type: 3}

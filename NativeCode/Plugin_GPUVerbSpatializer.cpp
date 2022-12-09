@@ -3,8 +3,11 @@
 #include <array>
 #include <cmath>
 
-namespace GPUVerbSpatializer
-{
+extern float reverbABuffer[];
+extern float reverbBBuffer[];
+extern float reverbCBuffer[];
+
+namespace GPUVerbSpatializer {
     inline bool IsHostCompatible(UnityAudioEffectState* state)
     {
         // Somewhat convoluted error checking here because hostapiversion is only supported from SDK version 1.03 (i.e. Unity 5.2) and onwards.
@@ -13,6 +16,19 @@ namespace GPUVerbSpatializer
             state->structsize >= sizeof(UnityAudioEffectState) &&
             state->hostapiversion >= 0x010300;
     }
+
+    const constexpr unsigned short PV_DSP_MAX_CALLBACK_LENGTH = 4096;
+    const constexpr unsigned short PV_DSP_CHANNEL_COUNT = 2;
+    const constexpr float PV_DSP_PI = 3.141593f;
+    const constexpr float PV_DSP_SQRT_2 = 1.4142136f;
+    const constexpr float PV_DSP_INV_SQRT_2 = 1.f / PV_DSP_SQRT_2;
+    const constexpr float PV_DSP_MAX_AUDIBLE_FREQ = 20000.f;
+    const constexpr float PV_DSP_MIN_AUDIBLE_FREQ = 20.f;
+    const constexpr float PV_DSP_T_ER_1 = 0.5f;
+    const constexpr float PV_DSP_T_ER_2 = 1.0f;
+    const constexpr float PV_DSP_T_ER_3 = 3.0f;
+    const constexpr float PV_DSP_MIN_DRY_GAIN = 0.01f;
+    const constexpr float TSTAR = 0.1f; // 100ms
 
     enum class DirectivityPattern {
         Omni,
@@ -80,7 +96,7 @@ namespace GPUVerbSpatializer
             -100.f, 100.f,
             0, 1.0f, 1.0f, Param::rt60, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Low Pass", "",
-            0.f, 100.f,
+            PV_DSP_MIN_AUDIBLE_FREQ, PV_DSP_MAX_AUDIBLE_FREQ,
             0, 1.0f, 1.0f, Param::lowPass, "Special parameter, only modify in-code");
         AudioPluginUtil::RegisterParameter(definition, "Direc X", "",
             -100.f, 100.f,
@@ -113,19 +129,6 @@ namespace GPUVerbSpatializer
         return UNITY_AUDIODSP_OK;
     }
 
-    const constexpr unsigned short PV_DSP_MAX_CALLBACK_LENGTH = 4096;
-    const constexpr unsigned short PV_DSP_CHANNEL_COUNT = 2;
-    const constexpr float PV_DSP_PI = 3.141593f;
-    const constexpr float PV_DSP_SQRT_2 = 1.4142136f;
-    const constexpr float PV_DSP_INV_SQRT_2 = 1.f / PV_DSP_SQRT_2;
-    const constexpr float PV_DSP_MAX_AUDIBLE_FREQ = 20000.f;
-    const constexpr float PV_DSP_MIN_AUDIBLE_FREQ = 20.f;
-    const constexpr float PV_DSP_T_ER_1 = 0.5f;
-    const constexpr float PV_DSP_T_ER_2 = 1.0f;
-    const constexpr float PV_DSP_T_ER_3 = 3.0f;
-    const constexpr float PV_DSP_MIN_DRY_GAIN = 0.01f;
-    const constexpr float TSTAR = 0.1f;
-
     inline float FindGainA(float rt60, float wetGain)
     {
         if (rt60 > PV_DSP_T_ER_2)
@@ -137,11 +140,10 @@ namespace GPUVerbSpatializer
             return 1.f;
         }
 
-        float gain = wetGain;
         float term1 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_2);
         float term2 = std::pow(10.f, -3.f * TSTAR / rt60);
         float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_1);
-        float a = gain * (term1 - term2) / (term1 - term3);
+        float a = wetGain * (term1 - term2) / (term1 - term3);
         return a;
     }
 
@@ -152,7 +154,6 @@ namespace GPUVerbSpatializer
             return 0.f;
         }
 
-        float gain = wetGain;
         float term2 = std::pow(10.f, -3.f * TSTAR / rt60);
 
         // case we want j + 1 instead of j
@@ -160,15 +161,15 @@ namespace GPUVerbSpatializer
         {
             float term1 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_3);
             float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_2);
-            float a = gain * (term1 - term2) / (term1 - term3);
+            float a = wetGain * (term1 - term2) / (term1 - term3);
             return a;
         }
         else
         {
             float term1 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_2);
             float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_1);
-            float a = gain * (term1 - term2) / (term1 - term3);
-            return gain - a;
+            float a = wetGain * (term1 - term2) / (term1 - term3);
+            return wetGain - a;
         }
     }
 
@@ -180,12 +181,11 @@ namespace GPUVerbSpatializer
             return 0.f;
         }
 
-        float gain = wetGain;
         float term1 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_3);
         float term2 = std::pow(10.f, -3.f * TSTAR / rt60);
         float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_2);
-        float a = gain * (term1 - term2) / (term1 - term3);
-        return gain - a;
+        float a = wetGain * (term1 - term2) / (term1 - term3);
+        return wetGain - a;
     }
 
     inline float CardioidPattern(const float direcX, const float direcY,
@@ -195,8 +195,7 @@ namespace GPUVerbSpatializer
         return (cardioid > PV_DSP_MIN_DRY_GAIN) ? cardioid : PV_DSP_MIN_DRY_GAIN;
     }
 
-    UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels)
-    {
+    UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK ProcessCallback(UnityAudioEffectState* state, float* inbuffer, float* outbuffer, unsigned int length, int inchannels, int outchannels) {
         // Check that the host API supports this feature
         if (!IsHostCompatible(state) || state->spatializerdata == NULL) {
             memcpy(outbuffer, inbuffer, length * outchannels * sizeof(float)); // play raw audio
@@ -238,15 +237,22 @@ namespace GPUVerbSpatializer
         float currRevGainA = FindGainA(data->curr_rt60, data->curr_wetGain);
         float currRevGainB = FindGainB(data->curr_rt60, data->curr_wetGain);
         float currRevGainC = FindGainC(data->curr_rt60, data->curr_wetGain);
-        float currGainSum = 0;
         float* outPtr = outbuffer;
         inPtrMono = inbuffer;
+
+        float* reverbA = reverbABuffer;
+        float* reverbB = reverbBBuffer;
+        float* reverbC = reverbCBuffer;
         for (int i = 0; i < length; ++i) {
-            float valA = *inPtrMono * currRevGainA * data->p[Param::WET_GAIN_RATIO];
-            float valB = *inPtrMono * currRevGainB * data->p[Param::WET_GAIN_RATIO];
-            float valC = *inPtrMono++ * currRevGainC * data->p[Param::WET_GAIN_RATIO];
+            float inVal = *inPtrMono++;
             for (int j = 0; j < outchannels; ++j) {
-                *(outPtr++) = valA + valB + valC;
+                //*(outPtr++) = valA + valB + valC;
+                // send vals to separate buffers to apply proper reverb effect on.
+                
+                //reverbABuf.at(i * outchannels + j) += inVal * currRevGainA * data->p[Param::WET_GAIN_RATIO];
+                reverbA[i * outchannels + j] += inVal * currRevGainA * data->p[Param::WET_GAIN_RATIO];
+                reverbB[i * outchannels + j] += inVal * currRevGainB * data->p[Param::WET_GAIN_RATIO];
+                reverbC[i * outchannels + j] += inVal * currRevGainC * data->p[Param::WET_GAIN_RATIO];
             }
             currRevGainA = std::lerp(currRevGainA, targetRevGainA, lerpFactor);
             currRevGainB = std::lerp(currRevGainB, targetRevGainB, lerpFactor);
@@ -291,11 +297,10 @@ namespace GPUVerbSpatializer
                 sourceForwardX, sourceForwardY);
         }
 
-        float currDryGain = data->curr_dryGain;
         float targetDryGain = (std::max)(data->p[Param::dryGain], PV_DSP_MIN_DRY_GAIN);
 
         // Spatialization: determine panning current and target values
-        bool spatialize = (inchannels == 2 && outchannels == 2);
+        bool spatialize = false; //  (inchannels == 2 && outchannels == 2);
         float targetLeft = 1.f, targetRight = 1.f;
         float currLeft = 1.f, currRight = 1.f;
         if (spatialize) {
@@ -323,36 +328,33 @@ namespace GPUVerbSpatializer
         outPtr = outbuffer;
         for (int i = 0; i < length; ++i)
         {
-            float val = *inPtrMono++ * currDryGain * currSDirectivityGain * currDistanceAttenuation;
+            float val = *inPtrMono++ * data->curr_dryGain * currSDirectivityGain * currDistanceAttenuation;
             if (!spatialize) {
                 for (int j = 0; j < outchannels; ++j) { // copy across channels if not spatializing
-                    *(outPtr++) += val;
+                    *(outPtr++) = val;
                 }
             } else {
-                *(outPtr++) += val * currLeft;
-                *(outPtr++) += val * currRight;
+                *(outPtr++) = val * currLeft; //+=
+                *(outPtr++) = val * currRight;
                 currRight = std::lerp(currRight, targetRight, lerpFactor);
                 currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
             }
 
-            currDryGain = std::lerp(currDryGain, targetDryGain, lerpFactor);
+            data->curr_dryGain = std::lerp(data->curr_dryGain, targetDryGain, lerpFactor);
             currSDirectivityGain = std::lerp(currSDirectivityGain, targetSDirectivityGain, lerpFactor);
             currDistanceAttenuation = std::lerp(currDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
-        }
 
-        // TODO: this can be simpler.
-        data->curr_dryGain = currDryGain;
-        for (int i = 0; i < length; ++i) {
-            data->curr_direcX         = std::lerp(data->curr_direcX,         data->p[Param::direcX], lerpFactor);
-            data->curr_direcY         = std::lerp(data->curr_direcY,         data->p[Param::direcY], lerpFactor);
-            data->curr_wetGain        = std::lerp(data->curr_wetGain,        data->p[Param::wetGain], lerpFactor);
-            data->curr_rt60           = std::lerp(data->curr_rt60,           data->p[Param::rt60], lerpFactor);
+            // lerp here instead of another loop
+            data->curr_direcX = std::lerp(data->curr_direcX, data->p[Param::direcX], lerpFactor);
+            data->curr_direcY = std::lerp(data->curr_direcY, data->p[Param::direcY], lerpFactor);
+            data->curr_wetGain = std::lerp(data->curr_wetGain, data->p[Param::wetGain], lerpFactor);
+            data->curr_rt60 = std::lerp(data->curr_rt60, data->p[Param::rt60], lerpFactor);
             data->curr_sourceForwardX = std::lerp(data->curr_sourceForwardX, sourceForwardX, lerpFactor);
             data->curr_sourceForwardY = std::lerp(data->curr_sourceForwardY, sourceForwardY, lerpFactor);
-            data->curr_sDirectivityX  = std::lerp(data->curr_sDirectivityX,  data->p[Param::sDirectivityX], lerpFactor);
-            data->curr_sDirectivityY  = std::lerp(data->curr_sDirectivityY,  data->p[Param::sDirectivityY], lerpFactor);
-            data->curr_sourceX        = std::lerp(data->curr_sourceX,        sourceX, lerpFactor);
-            data->curr_sourceY        = std::lerp(data->curr_sourceY,        sourceY, lerpFactor);
+            data->curr_sDirectivityX = std::lerp(data->curr_sDirectivityX, data->p[Param::sDirectivityX], lerpFactor);
+            data->curr_sDirectivityY = std::lerp(data->curr_sDirectivityY, data->p[Param::sDirectivityY], lerpFactor);
+            data->curr_sourceX = std::lerp(data->curr_sourceX, sourceX, lerpFactor);
+            data->curr_sourceY = std::lerp(data->curr_sourceY, sourceY, lerpFactor);
         }
 
         return UNITY_AUDIODSP_OK;
@@ -360,7 +362,6 @@ namespace GPUVerbSpatializer
 
 
     // leave these alone
-
     UNITY_AUDIODSP_RESULT UNITY_AUDIODSP_CALLBACK SetFloatParameterCallback(UnityAudioEffectState* state, int index, float value)
     {
         EffectData* data = state->GetEffectData<EffectData>();

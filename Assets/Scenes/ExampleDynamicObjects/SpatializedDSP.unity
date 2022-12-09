@@ -319,12 +319,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 128362329}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
---- !u!81 &197719692 stripped
-AudioListener:
-  m_CorrespondingSourceObject: {fileID: 4805389260829280478, guid: d05cd26c08a717c42b19c10b7c530305,
-    type: 3}
-  m_PrefabInstance: {fileID: 2016701017}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &209418839
 GameObject:
   m_ObjectHideFlags: 0
@@ -442,7 +436,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!95 &209418845
@@ -574,9 +567,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52f4cd4fd4fe01644b3c215c13b8d963, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  listener: {fileID: 197719692}
   sourcePattern: 1
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!1 &319051498
 GameObject:
   m_ObjectHideFlags: 0
@@ -859,9 +852,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52f4cd4fd4fe01644b3c215c13b8d963, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  listener: {fileID: 0}
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &575401387
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -877,7 +870,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!95 &575401388
@@ -1485,9 +1477,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52f4cd4fd4fe01644b3c215c13b8d963, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  listener: {fileID: 0}
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &1204876894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1503,7 +1495,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!95 &1204876895
@@ -2151,9 +2142,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 52f4cd4fd4fe01644b3c215c13b8d963, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  listener: {fileID: 0}
   sourcePattern: 0
   SMOOTHING: 2
+  WET_GAIN_RATIO: 0.1
 --- !u!114 &1998432711
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2169,7 +2160,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!95 &1998432712

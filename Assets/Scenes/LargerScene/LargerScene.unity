@@ -172,6 +172,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DesertBrazzier_Red (5)
       objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
       value: 6
@@ -2300,6 +2304,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DesertBrazzier_Red (4)
       objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
       value: 5
@@ -2778,7 +2786,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!1001 &943017185
@@ -2978,7 +2985,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!4 &966999379 stripped
@@ -3191,7 +3197,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!1001 &1061855263
@@ -3735,6 +3740,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: DesertBrazzier_Red (2)
       objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
       value: 3
@@ -3932,7 +3941,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!1 &1277485005
@@ -4731,7 +4739,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!1001 &1505425022
@@ -5220,6 +5227,10 @@ PrefabInstance:
     - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_Name
       value: DesertBrazzier_Red (3)
+      objectReference: {fileID: 0}
+    - target: {fileID: 1153673260404766, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
+      propertyPath: m_IsActive
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4037910522395942, guid: 6ff5b40e1b370ce45aa41f0f2596643a, type: 3}
       propertyPath: m_RootOrder
@@ -6096,7 +6107,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: efcdc9f51c2ed3440a84bc4645b1df3c, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 0
   Volume: -26
   DirectivityPattern: 0
 --- !u!1 &1950530151 stripped

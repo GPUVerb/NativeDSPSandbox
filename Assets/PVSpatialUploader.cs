@@ -49,7 +49,6 @@ namespace Planeverb {
 
 		void Update()
 		{
-
 			PlaneverbDSPInput dspParams = emitter.GetAudioSource().GetInput();
 
 			source.SetSpatializerFloat((int)EffectData.sourcePattern, (float)sourcePattern);
