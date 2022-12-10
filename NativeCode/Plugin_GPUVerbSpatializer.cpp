@@ -353,8 +353,6 @@ namespace GPUVerbSpatializer {
                     *(outPtr++) = val * currRight;
                     currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
                     currRight = std::lerp(currRight, targetRight, lerpFactor);
-
-
                 }
             }
 

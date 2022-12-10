@@ -123,6 +123,51 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &96014754
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 96014756}
+  - component: {fileID: 96014755}
+  m_Layer: 0
+  m_Name: Visualizer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &96014755
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 96014754}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d432c8c75c0712e4783822d4f0dd6f10, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  prefab: {fileID: 2098303937}
+--- !u!4 &96014756
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 96014754}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.655, y: 0.82, z: 1.1353033}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_RootOrder: 14
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &107193213
 GameObject:
   m_ObjectHideFlags: 0
@@ -572,7 +617,6 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
-  listener: {fileID: 614815707}
 --- !u!1 &319051498
 GameObject:
   m_ObjectHideFlags: 0
@@ -860,7 +904,6 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
-  listener: {fileID: 0}
 --- !u!114 &575401387
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -977,12 +1020,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 139.306, z: 0}
---- !u!1 &614815707 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 4805389260829280465, guid: d05cd26c08a717c42b19c10b7c530305,
-    type: 3}
-  m_PrefabInstance: {fileID: 2016701017}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &824499652
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1494,7 +1531,6 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
-  listener: {fileID: 0}
 --- !u!114 &1204876894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2231,7 +2267,6 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
-  listener: {fileID: 0}
 --- !u!114 &1998432711
 MonoBehaviour:
   m_ObjectHideFlags: 0
