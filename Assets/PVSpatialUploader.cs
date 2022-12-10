@@ -49,6 +49,11 @@ namespace Planeverb {
 		{
 			source = GetComponent<AudioSource>();
 			emitter = GetComponent<PlaneverbEmitter>();
+
+			if (!source.spatialize)
+			{
+				Debug.Log("Non-spatialized audio source! Enable spatialization");
+			}
 		}
 
 		void Update()

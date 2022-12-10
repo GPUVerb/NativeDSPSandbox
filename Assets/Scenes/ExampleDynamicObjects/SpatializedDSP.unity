@@ -412,14 +412,14 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 209418839}
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: 0}
   m_LocalPosition: {x: 5, y: 0.43, z: 8}
-  m_LocalScale: {x: 0.3474, y: 0.3474, z: 0.3474}
+  m_LocalScale: {x: 0.34739998, y: 0.3474, z: 0.3474}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 128362330}
   m_Father: {fileID: 0}
-  m_RootOrder: 8
+  m_RootOrder: 9
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!114 &209418844
 MonoBehaviour:
@@ -467,7 +467,7 @@ AudioSource:
   m_GameObject: {fileID: 209418839}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 24300002, guid: 1cd720efc67c536428d0dfb435893df1,
+  OutputAudioMixerGroup: {fileID: 24300002, guid: c61c2aa911b2c8645bb386b78d2f1781,
     type: 2}
   m_audioClip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   m_PlayOnAwake: 1
@@ -572,6 +572,7 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
+  listener: {fileID: 614815707}
 --- !u!1 &319051498
 GameObject:
   m_ObjectHideFlags: 0
@@ -670,7 +671,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 9
+  m_RootOrder: 8
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &319051503
 MonoBehaviour:
@@ -859,6 +860,7 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
+  listener: {fileID: 0}
 --- !u!114 &575401387
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -975,6 +977,12 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 139.306, z: 0}
+--- !u!1 &614815707 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4805389260829280465, guid: d05cd26c08a717c42b19c10b7c530305,
+    type: 3}
+  m_PrefabInstance: {fileID: 2016701017}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &824499652
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1486,6 +1494,7 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
+  listener: {fileID: 0}
 --- !u!114 &1204876894
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2222,6 +2231,7 @@ MonoBehaviour:
   WET_GAIN_RATIO: 0.1
   SPATIALIZE: 1
   SUPPRESS_DRY_SOUND: 0
+  listener: {fileID: 0}
 --- !u!114 &1998432711
 MonoBehaviour:
   m_ObjectHideFlags: 0

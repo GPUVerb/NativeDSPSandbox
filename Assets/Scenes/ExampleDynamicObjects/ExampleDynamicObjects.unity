@@ -179,7 +179,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!65 &83712137
@@ -474,9 +473,8 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
-  DirectivityPattern: 0
+  DirectivityPattern: 1
 --- !u!95 &209418845
 Animator:
   serializedVersion: 4
@@ -757,7 +755,7 @@ PrefabInstance:
     - target: {fileID: 487044912369652854, guid: c8b601b2687bf9447bd6f063855278c0,
         type: 3}
       propertyPath: config.useSpatialization
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 487044912369652855, guid: c8b601b2687bf9447bd6f063855278c0,
         type: 3}
@@ -1281,7 +1279,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!65 &1524084433
@@ -2005,7 +2002,6 @@ MonoBehaviour:
   Clip: {fileID: 8300000, guid: 42cb03dd39f5a88499e0e2d7523a26df, type: 3}
   PlayOnAwake: 1
   Loop: 1
-  GPUVerbPluginId: 21
   Volume: 0
   DirectivityPattern: 1
 --- !u!65 &2068135022

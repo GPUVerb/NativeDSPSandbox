@@ -80,7 +80,7 @@ namespace GPUVerbSpatializer {
     {
         int numparams = numParams;
         definition.paramdefs = new UnityAudioParameterDefinition[numparams];
-        // Very hacky way of reading parameters for spatializer effectdata.
+        // hacky way of reading parameters for spatializer effectdata.
         AudioPluginUtil::RegisterParameter(definition, "Spatialize", "",
             0.f, 1.f,
             1.f, 1.0f, 1.0f, Param::SPATIALIZE, "Spatialize bool - special parameter");
@@ -221,9 +221,7 @@ namespace GPUVerbSpatializer {
             memset(outbuffer, 0, length * outchannels * sizeof(float)); // output no sound, as debugging
             return UNITY_AUDIODSP_ERR_UNSUPPORTED;
         }
-
-        float lerpFactor = 1.f / ((float)(length)*data->p[Param::SMOOTHING_FACTOR]);
-        // coagulate channels into mono-data at the first "length" slots of inbuffer
+        // Downmix channels into mono-data
         float* inPtrMono = inbuffer;
         const float* inputPtrIter = inbuffer;
         for (int i = 0; i < length; ++i) {
@@ -235,9 +233,9 @@ namespace GPUVerbSpatializer {
         }
 
 
+        float lerpFactor = 1.f / ((float)(length)*data->p[Param::SMOOTHING_FACTOR]);
 
-        // possible to add low pass filter here for marginal sound change
-
+        // Possible to add low pass filter here - defer to using Unity's mixer effects?
 
 
         // incorporate wet gains
@@ -256,10 +254,7 @@ namespace GPUVerbSpatializer {
         for (int i = 0; i < length; ++i) {
             float inVal = *inPtrMono++;
             for (int j = 0; j < outchannels; ++j) {
-                //*(outPtr++) = valA + valB + valC;
-                // send vals to separate buffers to apply proper reverb effect on.
-                
-                //reverbABuf.at(i * outchannels + j) += inVal * currRevGainA * data->p[Param::WET_GAIN_RATIO];
+                // send vals to separate buffers to apply proper reverb effect on overall sound mix
                 reverbA[i * outchannels + j] += inVal * currRevGainA * data->p[Param::WET_GAIN_RATIO];
                 reverbB[i * outchannels + j] += inVal * currRevGainB * data->p[Param::WET_GAIN_RATIO];
                 reverbC[i * outchannels + j] += inVal * currRevGainC * data->p[Param::WET_GAIN_RATIO];
@@ -269,7 +264,7 @@ namespace GPUVerbSpatializer {
             currRevGainC = std::lerp(currRevGainC, targetRevGainC, lerpFactor);
         }
 
-        // incorporate dry gains
+        // DRY GAIN CALCULATION
         float* L = state->spatializerdata->listenermatrix;
         float* S = state->spatializerdata->sourcematrix;
         float sourceX = S[12];
@@ -280,6 +275,7 @@ namespace GPUVerbSpatializer {
         float listenerX = -listenerScaleSquared * (L[0] * L[12] + L[1] * L[13] + L[2] * L[14]);
         float listenerY = -listenerScaleSquared * (L[8] * L[12] + L[9] * L[13] + L[10] * L[14]); // the z position in-unity
 
+        //TODO: 3D distance?
         float distX = listenerX - sourceX;
         float distY = listenerY - sourceY;
         float euclideanDistance = std::sqrt(distX * distX + distY * distY);
@@ -316,44 +312,41 @@ namespace GPUVerbSpatializer {
         float currLeft = 1.f, currRight = 1.f;
         if (spatialize) {
             mag = std::sqrt(L[2] * L[2] + L[6] * L[6] + L[10] * L[10]);
-            float forwardX = L[2] / mag;
-            float forwardY = L[10] / mag;
+            float listenerForwardX = L[2] / mag;
+            float listenerForwardY = L[10] / mag;
 
-            float angle = std::atan2f(forwardY, forwardX);
-            float phi = std::atan2f(data->p[Param::direcY], data->p[Param::direcX]);
+            float angle = std::atan2f(listenerForwardY, listenerForwardX);
+            float phi = std::atan2f(data->p[Param::direcY], data->p[Param::direcX]); // arrival direction of sound
             float theta = (angle - phi) / 2.f;
             float ct = std::cos(theta);
             float st = std::sin(theta);
-            targetLeft = PV_DSP_INV_SQRT_2 * (ct - st);
-            targetRight = PV_DSP_INV_SQRT_2 * (ct + st);
+            targetLeft = PV_DSP_INV_SQRT_2 * std::abs(ct - st);
+            targetRight = PV_DSP_INV_SQRT_2 * std::abs(ct + st); // avoid discontinutiy (popping)
 
             phi = std::atan2f(data->curr_direcY, data->curr_direcX);
             theta = (angle - phi) / 2.f;
             ct = std::cos(theta);
             st = std::sin(theta);
-            currLeft = PV_DSP_INV_SQRT_2 * (ct - st);
-            currRight = PV_DSP_INV_SQRT_2 * (ct + st);
+            currLeft = PV_DSP_INV_SQRT_2 * std::abs(ct - st);
+            currRight = PV_DSP_INV_SQRT_2 * std::abs(ct + st);
         }
 
         inPtrMono = inbuffer;
         outPtr = outbuffer;
-        for (int i = 0; i < length; ++i)
-        {
-            if (data->p[Param::MUTE_DRY]) {
+        for (int i = 0; i < length; ++i) {
+            if (data->p[Param::MUTE_DRY]) { // inside loop to loop-update reverb parameters
                 memset(outbuffer, 0, length * outchannels * sizeof(float));
-            }
-            else {
+            } else {
                 float val = *inPtrMono++ * data->curr_dryGain * currSDirectivityGain * currDistanceAttenuation;
                 if (!spatialize) {
-                    for (int j = 0; j < outchannels; ++j) { // copy across channels if not spatializing
+                    for (int j = 0; j < outchannels; ++j) { // upmix across channels if not spatializing
                         *(outPtr++) = val;
                     }
-                }
-                else {
+                } else {
                     *(outPtr++) = val * currLeft; //+=
                     *(outPtr++) = val * currRight;
-                    currRight = std::lerp(currRight, targetRight, lerpFactor);
                     currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
+                    currRight = std::lerp(currRight, targetRight, lerpFactor);
                 }
             }
 
