@@ -12,7 +12,7 @@ public class ReverbWriter : MonoBehaviour
     [DllImport("GPUVerbDSPPlugin")]
     private static extern bool zeroReverb(int bufidx);
 
-    private static int MAX_FRAME_LENGTH = 4096;
+    private static int MAX_FRAME_LENGTH = 4096; // arbitrary
     float[] outputBuffer = new float[MAX_FRAME_LENGTH];
 
     public int index;
@@ -29,12 +29,10 @@ public class ReverbWriter : MonoBehaviour
 
     private void OnAudioFilterRead(float[] data, int channels)
     {
-        //zeroReverb();
         IntPtr result = IntPtr.Zero;
         float size = getReverbBuf(ref result, index);
-        //Debug.Log(size);
 
-        Marshal.Copy(result, outputBuffer, 0, MAX_FRAME_LENGTH); // arbitrary
+        Marshal.Copy(result, outputBuffer, 0, MAX_FRAME_LENGTH);
 
         // choose the right length in case data buffer too big
         int dataBufferLength = (data.Length > outputBuffer.Length) ? outputBuffer.Length : data.Length;

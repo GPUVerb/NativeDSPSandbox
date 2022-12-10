@@ -63,17 +63,19 @@ namespace GPUVerbSpatializer {
 
         float curr_sourceX = 0;
         float curr_sourceY = 0;
+        float curr_sourceZ = 0;
+
         float curr_sourceForwardX = 0; 
-        float curr_sourceForwardY = 0;
+        float curr_sourceForwardZ = 0;
 
         float curr_dryGain = 1.f;
         float curr_wetGain = 1.f;
         float curr_rt60 = 0.f;
-        float curr_lowPass; 
+        //float curr_lowPass; 
         float curr_direcX = 0;
-        float curr_direcY = 0;
+        float curr_direcZ = 0; 
         float curr_sDirectivityX = 0;
-        float curr_sDirectivityY = 0;
+        float curr_sDirectivityZ = 0; // this actually corresponds to unity z. confusing
     };
 
     int InternalRegisterEffectDefinition(UnityAudioEffectDefinition& definition)
@@ -145,7 +147,8 @@ namespace GPUVerbSpatializer {
         {
             return 0.f;
         }
-        else if (rt60 < PV_DSP_T_ER_1)
+        else 
+            if (rt60 < PV_DSP_T_ER_1)
         {
             return 1.f;
         }
@@ -154,7 +157,7 @@ namespace GPUVerbSpatializer {
         float term2 = std::pow(10.f, -3.f * TSTAR / rt60);
         float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_1);
         float a = wetGain * (term1 - term2) / (term1 - term3);
-        return a;
+        return (std::max)(1.f, a);
     }
 
     inline float FindGainB(float rt60, float wetGain)
@@ -268,39 +271,42 @@ namespace GPUVerbSpatializer {
         float* L = state->spatializerdata->listenermatrix;
         float* S = state->spatializerdata->sourcematrix;
         float sourceX = S[12];
-        float sourceY = S[14];
+        float sourceY = S[13];
+        float sourceZ = S[14];
 
         float listenerScaleSquared = 1.0f / (L[1] * L[1] + L[5] * L[5] + L[9] * L[9]);
         // transpose/inverse of rotation * translation
         float listenerX = -listenerScaleSquared * (L[0] * L[12] + L[1] * L[13] + L[2] * L[14]);
-        float listenerY = -listenerScaleSquared * (L[8] * L[12] + L[9] * L[13] + L[10] * L[14]); // the z position in-unity
+        float listenerY = -listenerScaleSquared * (L[4] * L[12] + L[5] * L[13] + L[6] * L[14]);
+        float listenerZ = -listenerScaleSquared * (L[8] * L[12] + L[9] * L[13] + L[10] * L[14]); // the z position in-unity
 
-        //TODO: 3D distance?
-        float distX = listenerX - sourceX;
-        float distY = listenerY - sourceY;
-        float euclideanDistance = std::sqrt(distX * distX + distY * distY);
+        float dist1 = listenerX - sourceX;
+        float dist2 = listenerY - sourceY;
+        float dist3 = listenerZ - sourceZ;
+        float euclideanDistance = std::sqrt(dist1 * dist1 + dist2 * dist2 + dist3 * dist3);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float targetDistanceAttenuation = 1.f / euclideanDistance;
 
-        distX = listenerX - data->curr_sourceX;
-        distY = listenerY - data->curr_sourceY;
-        euclideanDistance = std::sqrt(distX * distX + distY * distY);
+        dist1 = listenerX - data->curr_sourceX;
+        dist2 = listenerY - data->curr_sourceY;
+        dist3 = listenerZ - data->curr_sourceZ;
+        euclideanDistance = std::sqrt(dist1 * dist1 + dist2 * dist2 + dist3 * dist3);
         euclideanDistance = (euclideanDistance < 1.f) ? 1.f : euclideanDistance;
         float currDistanceAttenuation = 1.f / euclideanDistance;
 
         // x and z components of z-facing vector transform
         float mag = std::sqrt(S[8] * S[8] + S[9] * S[9] + S[10] * S[10]);
         float sourceForwardX = S[8] / mag;
-        float sourceForwardY = S[10] / mag;
+        float sourceForwardZ = S[10] / mag;
 
         // if (sourcePattern == DirectivityPattern::Omni)
         float currSDirectivityGain = 1.f;
         float targetSDirectivityGain = 1.f;
         if ((int)data->p[Param::sourcePattern] == static_cast<int>(DirectivityPattern::Cardioid)) {
-            currSDirectivityGain = CardioidPattern(data->curr_sDirectivityX, data->curr_sDirectivityY,
-                data->curr_sourceForwardX, data->curr_sourceForwardY);
+            currSDirectivityGain = CardioidPattern(data->curr_sDirectivityX, data->curr_sDirectivityZ,
+                data->curr_sourceForwardX, data->curr_sourceForwardZ);
             targetSDirectivityGain = CardioidPattern(data->p[Param::sDirectivityX], data->p[Param::sDirectivityY],
-                sourceForwardX, sourceForwardY);
+                sourceForwardX, sourceForwardZ);
         }
 
         float targetDryGain = (std::max)(data->p[Param::dryGain], PV_DSP_MIN_DRY_GAIN);
@@ -323,7 +329,7 @@ namespace GPUVerbSpatializer {
             targetLeft = PV_DSP_INV_SQRT_2 * std::abs(ct - st);
             targetRight = PV_DSP_INV_SQRT_2 * std::abs(ct + st); // avoid discontinutiy (popping)
 
-            phi = std::atan2f(data->curr_direcY, data->curr_direcX);
+            phi = std::atan2f(data->curr_direcZ, data->curr_direcX);
             theta = (angle - phi) / 2.f;
             ct = std::cos(theta);
             st = std::sin(theta);
@@ -347,6 +353,8 @@ namespace GPUVerbSpatializer {
                     *(outPtr++) = val * currRight;
                     currLeft = std::lerp(currLeft, targetLeft, lerpFactor);
                     currRight = std::lerp(currRight, targetRight, lerpFactor);
+
+
                 }
             }
 
@@ -354,17 +362,21 @@ namespace GPUVerbSpatializer {
             currSDirectivityGain = std::lerp(currSDirectivityGain, targetSDirectivityGain, lerpFactor);
             currDistanceAttenuation = std::lerp(currDistanceAttenuation, targetDistanceAttenuation, lerpFactor);
 
-            // lerp here instead of another loop
+            // lerp here instead of another loop. 
+            // could be moved to more appropriate places (eg lerp wet during wet mixing), but messier code
             data->curr_direcX = std::lerp(data->curr_direcX, data->p[Param::direcX], lerpFactor);
-            data->curr_direcY = std::lerp(data->curr_direcY, data->p[Param::direcY], lerpFactor);
+            data->curr_direcZ = std::lerp(data->curr_direcZ, data->p[Param::direcY], lerpFactor);
+
             data->curr_wetGain = std::lerp(data->curr_wetGain, data->p[Param::wetGain], lerpFactor);
             data->curr_rt60 = std::lerp(data->curr_rt60, data->p[Param::rt60], lerpFactor);
+
             data->curr_sourceForwardX = std::lerp(data->curr_sourceForwardX, sourceForwardX, lerpFactor);
-            data->curr_sourceForwardY = std::lerp(data->curr_sourceForwardY, sourceForwardY, lerpFactor);
+            data->curr_sourceForwardZ = std::lerp(data->curr_sourceForwardZ, sourceForwardZ, lerpFactor);
             data->curr_sDirectivityX = std::lerp(data->curr_sDirectivityX, data->p[Param::sDirectivityX], lerpFactor);
-            data->curr_sDirectivityY = std::lerp(data->curr_sDirectivityY, data->p[Param::sDirectivityY], lerpFactor);
+            data->curr_sDirectivityZ = std::lerp(data->curr_sDirectivityZ, data->p[Param::sDirectivityY], lerpFactor);
             data->curr_sourceX = std::lerp(data->curr_sourceX, sourceX, lerpFactor);
             data->curr_sourceY = std::lerp(data->curr_sourceY, sourceY, lerpFactor);
+            data->curr_sourceZ = std::lerp(data->curr_sourceZ, sourceZ, lerpFactor);
         }
 
         return UNITY_AUDIODSP_OK;
