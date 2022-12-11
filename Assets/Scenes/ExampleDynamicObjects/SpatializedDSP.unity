@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &96014755
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1283,6 +1283,25 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 926937942}
   m_Mesh: {fileID: 10206, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1095900349 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4805389260829280465, guid: d05cd26c08a717c42b19c10b7c530305,
+    type: 3}
+  m_PrefabInstance: {fileID: 2016701017}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1095900356
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1095900349}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 882220a000a854b4eb8ac2afa30f2769, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  ampMultiplier: 200
 --- !u!1 &1146157393
 GameObject:
   m_ObjectHideFlags: 0
