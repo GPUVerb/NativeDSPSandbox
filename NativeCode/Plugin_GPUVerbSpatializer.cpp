@@ -147,17 +147,16 @@ namespace GPUVerbSpatializer {
         {
             return 0.f;
         }
-        else 
-            if (rt60 < PV_DSP_T_ER_1)
-        {
-            return 1.f;
-        }
+        //else if (rt60 < PV_DSP_T_ER_1)
+        //{
+        //    return 1.f;
+        //}
 
         float term1 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_2);
         float term2 = std::pow(10.f, -3.f * TSTAR / rt60);
         float term3 = std::pow(10.f, -3.f * TSTAR / PV_DSP_T_ER_1);
         float a = wetGain * (term1 - term2) / (term1 - term3);
-        return (std::max)(1.f, a);
+        return (std::min)(1.f, a);
     }
 
     inline float FindGainB(float rt60, float wetGain)
